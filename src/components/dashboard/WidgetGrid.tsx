@@ -18,6 +18,7 @@ interface WidgetGridProps {
 }
 
 export function WidgetGrid({ widgets: propWidgets }: WidgetGridProps) {
+    const ReactGridLayout = GridLayout as any;
     const storeWidgets = useDashboardStore(state => state.widgets);
     const layout = useDashboardStore(state => state.layout);
     const updateLayout = useDashboardStore(state => state.updateLayout);
@@ -167,15 +168,15 @@ export function WidgetGrid({ widgets: propWidgets }: WidgetGridProps) {
 
     return (
         <div ref={containerRef} className="w-full min-h-[500px]">
-            <GridLayout
+            <ReactGridLayout
                 className="widget-grid"
-                layout={gridLayout}
+                layout={gridLayout as any}
                 cols={cols}
                 rowHeight={70}
                 width={containerWidth}
                 margin={[16, 16]}
                 containerPadding={[0, 0]}
-                onLayoutChange={handleLayoutChange}
+                onLayoutChange={handleLayoutChange as any}
                 isDraggable={true}
                 isResizable={true}
                 draggableHandle=".drag-handle"
@@ -203,7 +204,7 @@ export function WidgetGrid({ widgets: propWidgets }: WidgetGridProps) {
                         </motion.div>
                     </div>
                 ))}
-            </GridLayout>
+            </ReactGridLayout>
         </div>
     );
 }
