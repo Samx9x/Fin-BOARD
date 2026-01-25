@@ -34,6 +34,9 @@ export interface LayoutItem {
     h: number;
     minW?: number;
     minH?: number;
+    maxW?: number;
+    maxH?: number;
+    static?: boolean;
 }
 
 // API Response Types

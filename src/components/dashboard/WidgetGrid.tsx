@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useCallback, useState, useEffect, useRef } from 'react';
-import GridLayout from 'react-grid-layout';
+import GridLayout, { Layout } from 'react-grid-layout';
 import { motion } from 'framer-motion';
 import { useDashboardStore } from '@/store/dashboardStore';
 import { WidgetCard } from '@/components/widgets/WidgetCard';
@@ -126,7 +126,7 @@ export function WidgetGrid({ widgets: propWidgets }: WidgetGridProps) {
         return widgetLayouts;
     }, [layout, widgets, cols]);
 
-    const handleLayoutChange = useCallback((newLayout: GridLayout.Layout[]) => {
+    const handleLayoutChange = useCallback((newLayout: Layout[]) => {
         // Filter out the add-widget placeholder and save
         const widgetLayout: LayoutItem[] = newLayout
             .filter(item => item.i !== 'add-widget')
