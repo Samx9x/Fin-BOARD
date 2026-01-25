@@ -165,7 +165,7 @@ export function WidgetChart({ widget }: WidgetChartProps) {
         transition-colors duration-300
       ">
                 {/* Header */}
-                <div className="flex items-center justify-between p-3 border-b border-[var(--border-subtle)]">
+                <div className="flex items-center justify-between p-3 border-b border-[var(--border-subtle)]" key={widget.id}>
                     <div className="flex items-center gap-2">
                         <div className="drag-handle cursor-grab active:cursor-grabbing p-1 hover:bg-[var(--bg-elevated)] rounded">
                             <GripVertical className="w-4 h-4 text-[var(--text-muted)]" />
@@ -217,8 +217,8 @@ export function WidgetChart({ widget }: WidgetChartProps) {
                 {currentValue && (
                     <div className="px-4 py-2 border-b border-[var(--border-subtle)] flex items-center justify-between">
                         <div>
-                            <p className="text-xl font-bold text-[var(--text-primary)]">${currentValue}</p>
-                            <p className="text-xs text-[var(--text-muted)]">{widget.selectedFields[0]?.label || 'Value'}</p>
+                            <p className="text-xl font-bold text-[var(--text-primary)]">${currentValue as any}</p>
+                            <p className="text-xs text-[var(--text-muted)]">{(widget.selectedFields[0]?.label as any) || 'Value'}</p>
                         </div>
                         <div className={`flex items-center gap-1 text-sm ${trendInfo.isUp ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
                             {trendInfo.isUp ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
@@ -294,7 +294,7 @@ export function WidgetChart({ widget }: WidgetChartProps) {
                                             borderRadius: '8px',
                                             fontSize: '12px',
                                         }}
-                                        formatter={(value: number) => [`$${value.toLocaleString()}`, 'Value']}
+                                        formatter={(value: any) => [`$${Number(value).toLocaleString()}`, 'Value']}
                                     />
                                     <Line
                                         type="monotone"
@@ -335,7 +335,7 @@ export function WidgetChart({ widget }: WidgetChartProps) {
                                             borderRadius: '8px',
                                             fontSize: '12px',
                                         }}
-                                        formatter={(value: number) => [`$${value.toLocaleString()}`, 'Value']}
+                                        formatter={(value: any) => [`$${Number(value).toLocaleString()}`, 'Value']}
                                     />
                                     <Area
                                         type="monotone"
