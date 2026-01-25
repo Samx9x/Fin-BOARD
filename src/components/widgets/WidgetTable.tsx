@@ -13,7 +13,7 @@ interface WidgetTableProps {
 }
 
 export function WidgetTable({ widget }: WidgetTableProps) {
-    const { removeWidget, openAddWidgetModal, setEditingWidget } = useDashboardStore();
+    const { removeWidget, openAddWidgetModal, setEditingWidget, updateWidget } = useDashboardStore();
     const { data, isLoading, error, lastUpdated, refresh } = useWidgetData(widget.id);
 
     const [searchQuery, setSearchQuery] = useState('');
@@ -91,6 +91,24 @@ export function WidgetTable({ widget }: WidgetTableProps) {
         }
     };
 
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [editedName, setEditedName] = useState(widget.name);
+
+    const handleNameSave = () => {
+        if (editedName.trim() && editedName !== widget.name) {
+            updateWidget(widget.id, { name: editedName.trim() });
+        }
+        setIsEditingName(false);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') handleNameSave();
+        if (e.key === 'Escape') {
+            setEditedName(widget.name);
+            setIsEditingName(false);
+        }
+    };
+
     const handleEdit = () => {
         setEditingWidget(widget);
         openAddWidgetModal();
@@ -128,17 +146,37 @@ export function WidgetTable({ widget }: WidgetTableProps) {
       ">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-[var(--border-subtle)]">
-                    <div className="flex items-center gap-3">
-                        <div className="drag-handle cursor-grab active:cursor-grabbing">
+                    <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="drag-handle cursor-grab active:cursor-grabbing shrink-0">
                             <GripVertical className="w-4 h-4 text-[var(--text-muted)]" />
                         </div>
 
-                        <div className="flex items-center gap-2">
-                            <h3 className="font-semibold text-[var(--text-primary)] truncate max-w-[150px]">
-                                {widget.name}
-                            </h3>
-                            <span className="badge badge-table">Table</span>
+                        <div className="flex items-center gap-2 overflow-hidden">
+                            {isEditingName ? (
+                                <input
+                                    autoFocus
+                                    value={editedName}
+                                    onChange={(e) => setEditedName(e.target.value)}
+                                    onBlur={handleNameSave}
+                                    onKeyDown={handleKeyDown}
+                                    className="bg-[var(--bg-elevated)] text-[var(--text-primary)] px-2 py-0.5 rounded border border-[var(--primary)] outline-none text-sm font-semibold w-full"
+                                />
+                            ) : (
+                                <h3
+                                    className="font-semibold text-[var(--text-primary)] truncate max-w-[120px] cursor-text hover:text-[var(--primary)] transition-colors"
+                                    onClick={() => setIsEditingName(true)}
+                                    title="Click to rename"
+                                >
+                                    {widget.name}
+                                </h3>
+                            )}
+                            <span className="badge badge-table shrink-0">Table</span>
                         </div>
+                        {widget.description && (
+                            <p className="text-[10px] text-[var(--text-muted)] truncate max-w-[200px] mt-0.5" title={widget.description}>
+                                {widget.description}
+                            </p>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-1">
@@ -198,7 +236,19 @@ export function WidgetTable({ widget }: WidgetTableProps) {
 
                 {/* Table Content */}
                 <div className="flex-1 overflow-auto">
-                    {error ? (
+                    {widget.selectedFields.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-full text-center p-6">
+                            <Settings className="w-8 h-8 text-[var(--text-muted)] mb-3 opacity-20" />
+                            <p className="text-sm text-[var(--text-secondary)] font-medium mb-1">No columns selected</p>
+                            <p className="text-xs text-[var(--text-muted)] mb-4">Please select fields to display in table</p>
+                            <button
+                                onClick={handleEdit}
+                                className="btn btn-primary py-1.5 px-4 text-xs shadow-none"
+                            >
+                                Configure Fields
+                            </button>
+                        </div>
+                    ) : error ? (
                         <div className="flex flex-col items-center justify-center h-full text-center p-4">
                             <AlertCircle className="w-8 h-8 text-[var(--error)] mb-2" />
                             <p className="text-sm text-[var(--error)]">{error}</p>

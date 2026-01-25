@@ -10,6 +10,7 @@ export interface SelectedField {
 export interface Widget {
     id: string;
     name: string;
+    description?: string;
     apiUrl: string;
     refreshInterval: number;
     displayMode: WidgetDisplayMode;
@@ -37,6 +38,8 @@ export interface LayoutItem {
     maxW?: number;
     maxH?: number;
     static?: boolean;
+    isResizable?: boolean;
+    isDraggable?: boolean;
 }
 
 // API Response Types
@@ -54,11 +57,27 @@ export interface ApiTestResult {
     data?: unknown;
 }
 
+// API Provider Configuration
+export interface ApiProvider {
+    id: string;
+    name: string;
+    domain: string;
+    apiKey?: string;
+    rateLimit: {
+        callsPerMinute: number;
+        delay: number;
+    };
+    keyParamName?: string; // e.g., 'apikey', 'token', 'api_key'
+    getKeyUrl?: string;
+}
+
 // Dashboard State
 export interface DashboardState {
     widgets: Widget[];
     layout: LayoutItem[];
     theme: 'dark' | 'light';
+    apiKeys: Record<string, string>;
+    apiProviders: ApiProvider[];
     isAddWidgetModalOpen: boolean;
 }
 

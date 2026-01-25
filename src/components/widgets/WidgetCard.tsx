@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useState } from 'react';
 import { motion } from 'framer-motion';
 import { RefreshCw, Settings, Trash2, GripVertical, AlertCircle } from 'lucide-react';
 import { Widget, SelectedField } from '@/types';
@@ -13,9 +13,12 @@ interface WidgetCardProps {
 }
 
 export function WidgetCard({ widget }: WidgetCardProps) {
-    const { removeWidget, openAddWidgetModal, setEditingWidget } = useDashboardStore();
+    const { removeWidget, openAddWidgetModal, setEditingWidget, updateWidget } = useDashboardStore();
     const { data, isLoading, error, lastUpdated, refresh } = useWidgetData(widget.id);
     const cardRef = useRef<HTMLDivElement>(null);
+
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [editedName, setEditedName] = useState(widget.name);
 
     // 3D tilt effect
     const handleMouseMove = useCallback((e: React.MouseEvent) => {
@@ -43,6 +46,21 @@ export function WidgetCard({ widget }: WidgetCardProps) {
     const handleEdit = () => {
         setEditingWidget(widget);
         openAddWidgetModal();
+    };
+
+    const handleNameSave = () => {
+        if (editedName.trim() && editedName !== widget.name) {
+            updateWidget(widget.id, { name: editedName.trim() });
+        }
+        setIsEditingName(false);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') handleNameSave();
+        if (e.key === 'Escape') {
+            setEditedName(widget.name);
+            setIsEditingName(false);
+        }
     };
 
     const formatLastUpdated = (date: string | null) => {
@@ -79,20 +97,40 @@ export function WidgetCard({ widget }: WidgetCardProps) {
       ">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-[var(--border-subtle)]">
-                    <div className="flex items-center gap-3">
-                        <div className="drag-handle cursor-grab active:cursor-grabbing">
+                    <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="drag-handle cursor-grab active:cursor-grabbing shrink-0">
                             <GripVertical className="w-4 h-4 text-[var(--text-muted)]" />
                         </div>
 
-                        <div className="flex items-center gap-2">
-                            <h3 className="font-semibold text-[var(--text-primary)] truncate max-w-[150px]">
-                                {widget.name}
-                            </h3>
-                            <span className="badge badge-live flex items-center gap-1">
+                        <div className="flex items-center gap-2 overflow-hidden">
+                            {isEditingName ? (
+                                <input
+                                    autoFocus
+                                    value={editedName}
+                                    onChange={(e) => setEditedName(e.target.value)}
+                                    onBlur={handleNameSave}
+                                    onKeyDown={handleKeyDown}
+                                    className="bg-[var(--bg-elevated)] text-[var(--text-primary)] px-2 py-0.5 rounded border border-[var(--primary)] outline-none text-sm font-semibold w-full"
+                                />
+                            ) : (
+                                <h3
+                                    className="font-semibold text-[var(--text-primary)] truncate max-w-[120px] cursor-text hover:text-[var(--primary)] transition-colors"
+                                    onClick={() => setIsEditingName(true)}
+                                    title="Click to rename"
+                                >
+                                    {widget.name}
+                                </h3>
+                            )}
+                            <span className="badge badge-live flex items-center gap-1 shrink-0">
                                 <span className="pulse-dot" />
                                 Live
                             </span>
                         </div>
+                        {widget.description && (
+                            <p className="text-[10px] text-[var(--text-muted)] truncate max-w-[200px] mt-0.5" title={widget.description}>
+                                {widget.description}
+                            </p>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-1">
@@ -130,44 +168,83 @@ export function WidgetCard({ widget }: WidgetCardProps) {
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 p-4">
+                <div className="flex-1 p-4 flex flex-col justify-center">
                     {error ? (
-                        <div className="flex flex-col items-center justify-center h-full text-center">
-                            <AlertCircle className="w-8 h-8 text-[var(--error)] mb-2" />
-                            <p className="text-sm text-[var(--error)]">{error}</p>
+                        <div className="flex flex-col items-center justify-center h-full text-center px-4">
+                            <AlertCircle className="w-8 h-8 text-[var(--error)] mb-2 opacity-50" />
+                            <p className="text-xs text-[var(--error)] font-medium mb-1">Failed to load data</p>
+                            <p className="text-[10px] text-[var(--text-muted)] leading-tight mb-3 italic">{error}</p>
                             <button
                                 onClick={refresh}
-                                className="mt-3 text-xs text-[var(--primary)] hover:underline"
+                                className="btn btn-ghost py-1 px-3 text-[10px] border border-[var(--error-border)] text-[var(--error)] hover:bg-[var(--error-subtle)]"
                             >
                                 Try Again
                             </button>
                         </div>
+                    ) : widget.selectedFields.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-full text-center p-4">
+                            <Settings className="w-8 h-8 text-[var(--text-muted)] mb-3 opacity-20" />
+                            <p className="text-sm text-[var(--text-secondary)] font-medium mb-1">No metrics selected</p>
+                            <p className="text-xs text-[var(--text-muted)] mb-4">Please configure fields to display</p>
+                            <button
+                                onClick={handleEdit}
+                                className="btn btn-primary py-1.5 px-4 text-xs shadow-none"
+                            >
+                                Configure Fields
+                            </button>
+                        </div>
                     ) : isLoading && !data ? (
-                        <div className="space-y-3">
-                            {[...Array(3)].map((_, i) => (
-                                <div key={i} className="flex justify-between items-center">
-                                    <div className="shimmer h-4 w-20 rounded" />
-                                    <div className="shimmer h-5 w-32 rounded" />
+                        <div className="space-y-4">
+                            <div className="text-center py-2">
+                                <div className="shimmer h-3 w-24 mx-auto rounded mb-2" />
+                                <div className="shimmer h-8 w-32 mx-auto rounded" />
+                            </div>
+                            {widget.selectedFields.length > 1 && (
+                                <div className="space-y-3 pt-2">
+                                    {[...Array(Math.min(widget.selectedFields.length - 1, 3))].map((_, i) => (
+                                        <div key={i} className="flex justify-between items-center">
+                                            <div className="shimmer h-3 w-20 rounded" />
+                                            <div className="shimmer h-4 w-16 rounded" />
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
+                            )}
                         </div>
                     ) : (
-                        <div className="space-y-3">
-                            {widget.selectedFields.map((field) => (
-                                <div key={field.path} className="flex justify-between items-center">
-                                    <span className="text-sm text-[var(--text-secondary)] truncate max-w-[40%]">
-                                        {field.label}
-                                    </span>
-                                    <motion.span
-                                        key={String(getValueByPath(data, field.path))}
-                                        initial={{ opacity: 0.5, scale: 0.95 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        className="font-mono font-semibold text-[var(--text-primary)] truncate max-w-[55%]"
+                        <div className="space-y-4">
+                            {widget.selectedFields.length === 1 ? (
+                                <div className="text-center py-2">
+                                    <p className="text-xs text-[var(--text-muted)] mb-1 uppercase tracking-wider">
+                                        {widget.selectedFields[0].label}
+                                    </p>
+                                    <motion.p
+                                        key={String(getValueByPath(data, widget.selectedFields[0].path))}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="text-3xl font-bold text-[var(--text-primary)] tracking-tight"
                                     >
-                                        {getDisplayValue(field)}
-                                    </motion.span>
+                                        {getDisplayValue(widget.selectedFields[0])}
+                                    </motion.p>
                                 </div>
-                            ))}
+                            ) : (
+                                <div className="space-y-3">
+                                    {widget.selectedFields.map((field) => (
+                                        <div key={field.path} className="flex justify-between items-center group/field">
+                                            <span className="text-sm text-[var(--text-secondary)] truncate max-w-[45%] group-hover/field:text-[var(--text-primary)] transition-colors">
+                                                {field.label}
+                                            </span>
+                                            <motion.span
+                                                key={String(getValueByPath(data, field.path))}
+                                                initial={{ opacity: 0.5, scale: 0.95 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                className="font-mono font-semibold text-[var(--text-primary)] truncate max-w-[50%] bg-[var(--bg-elevated)] px-2 py-0.5 rounded border border-transparent group-hover/field:border-[var(--border-subtle)]"
+                                            >
+                                                {getDisplayValue(field)}
+                                            </motion.span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

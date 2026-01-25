@@ -2,22 +2,25 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, LayoutGrid, LineChart as ChartIcon, Table, MoreHorizontal } from 'lucide-react';
+import { Plus, LayoutGrid, LineChart as ChartIcon, Table, MoreHorizontal, RefreshCw } from 'lucide-react';
 import { useDashboardStore } from '@/store/dashboardStore';
 import { WidgetGrid } from '@/components/dashboard/WidgetGrid';
 import { EmptyState } from '@/components/dashboard/EmptyState';
+import { DashboardSettings } from '@/components/dashboard/DashboardSettings';
+import { SettingsModal } from '@/components/modals/SettingsModal';
 
 // Widget Tab filters
 const widgetTabs = [
     { id: 'all', label: 'All Widgets', icon: LayoutGrid },
     { id: 'charts', label: 'Charts', icon: ChartIcon },
     { id: 'tables', label: 'Tables', icon: Table },
-    { id: 'more', label: 'More', icon: MoreHorizontal },
+    { id: 'cards', label: 'Cards', icon: LayoutGrid },
 ];
 
 export function HomeSection() {
     const widgets = useDashboardStore(state => state.widgets);
     const openAddWidgetModal = useDashboardStore(state => state.openAddWidgetModal);
+    const openTemplatesModal = useDashboardStore(state => state.openTemplatesModal);
     const [activeTab, setActiveTab] = useState('all');
 
     // Filter widgets based on active tab
@@ -25,7 +28,7 @@ export function HomeSection() {
         if (activeTab === 'all') return true;
         if (activeTab === 'charts') return widget.displayMode === 'chart';
         if (activeTab === 'tables') return widget.displayMode === 'table';
-        if (activeTab === 'more') return widget.displayMode === 'card';
+        if (activeTab === 'cards') return widget.displayMode === 'card';
         return true;
     });
 
@@ -35,22 +38,58 @@ export function HomeSection() {
                 {/* Page Title */}
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-2xl font-bold text-[var(--text-primary)]">
-                        My Dashboard
+                        My Dashboard <span className="text-[var(--text-muted)] font-normal text-lg ml-1">({widgets.length})</span>
                     </h2>
-                    <motion.button
-                        onClick={openAddWidgetModal}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="
-              flex items-center gap-2 px-5 py-2.5
-              bg-[var(--primary)] text-black
-              rounded-xl text-sm font-semibold
-              shadow-lg shadow-[var(--primary)]/20
-            "
-                    >
-                        <Plus className="w-4 h-4" />
-                        Add Widget
-                    </motion.button>
+                    <div className="flex items-center gap-3">
+                        <motion.button
+                            onClick={() => useDashboardStore.getState().refreshAllWidgets()}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="
+                  p-2.5 bg-[var(--bg-elevated)] text-[var(--text-primary)]
+                  border border-[var(--border-subtle)] rounded-xl
+                  hover:border-[var(--primary)] transition-colors
+                "
+                            title="Refresh All"
+                        >
+                            <RefreshCw className="w-4 h-4 text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors" />
+                        </motion.button>
+
+                        <DashboardSettings />
+
+                        <div className="w-px h-8 bg-[var(--border-subtle)] mx-1" />
+
+                        <motion.button
+                            onClick={openTemplatesModal}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="
+                  flex items-center gap-2 px-5 py-2.5
+                  bg-[var(--bg-elevated)] text-[var(--text-primary)]
+                  border border-[var(--border-subtle)]
+                  rounded-xl text-sm font-semibold
+                  hover:border-[var(--primary)] transition-colors
+                "
+                        >
+                            <LayoutGrid className="w-4 h-4" />
+                            Browse Templates
+                        </motion.button>
+
+                        <motion.button
+                            onClick={openAddWidgetModal}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="
+                  flex items-center gap-2 px-5 py-2.5
+                  bg-[var(--primary)] text-black
+                  rounded-xl text-sm font-semibold
+                  shadow-lg shadow-[var(--primary)]/20
+                "
+                        >
+                            <Plus className="w-4 h-4" />
+                            Add Widget
+                        </motion.button>
+                    </div>
                 </div>
 
                 {/* Widget Tabs */}
@@ -63,7 +102,7 @@ export function HomeSection() {
                             : widgets.filter(w => {
                                 if (tab.id === 'charts') return w.displayMode === 'chart';
                                 if (tab.id === 'tables') return w.displayMode === 'table';
-                                if (tab.id === 'more') return w.displayMode === 'card';
+                                if (tab.id === 'cards') return w.displayMode === 'card';
                                 return false;
                             }).length;
 
@@ -117,6 +156,7 @@ export function HomeSection() {
                     <EmptyState />
                 )}
             </div>
+            <SettingsModal />
         </div>
     );
 }

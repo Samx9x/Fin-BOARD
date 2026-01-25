@@ -8,16 +8,63 @@ import { HomeSection } from '@/components/sections/HomeSection';
 import { WalletSection } from '@/components/sections/WalletSection';
 import { AnalyticsSection } from '@/components/sections/AnalyticsSection';
 import { AddWidgetModal } from '@/components/modals/AddWidgetModal';
+import { TemplatesModal, WidgetTemplate, DashboardTemplate } from '@/components/modals/TemplatesModal';
 import { ToastContainer } from '@/components/ui/Toast';
 
 export default function Dashboard() {
-  const theme = useDashboardStore(state => state.theme);
+  const {
+    theme,
+    isTemplatesModalOpen,
+    closeTemplatesModal,
+    openAddWidgetModal,
+    openTemplatesModal, // Added this
+    addWidget
+  } = useDashboardStore();
+
   const [activeSection, setActiveSection] = useState('home');
+  const [templateMode, setTemplateMode] = useState<'widget' | 'dashboard'>('widget');
 
   // Update html data-theme attribute when theme changes
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
+
+  // Handle Template Selection
+  const handleSelectWidgetTemplate = (template: WidgetTemplate) => {
+    addWidget({
+      id: '',
+      name: template.name,
+      apiUrl: template.apiUrl,
+      refreshInterval: template.refreshInterval,
+      displayMode: template.displayMode,
+      selectedFields: template.fields,
+      chartConfig: template.chartConfig,
+      data: null,
+      lastUpdated: null,
+      isLoading: false,
+      error: null,
+    });
+    closeTemplatesModal();
+  };
+
+  const handleSelectDashboardTemplate = (template: DashboardTemplate) => {
+    template.widgets.forEach(w => {
+      addWidget({
+        id: '',
+        name: w.name,
+        apiUrl: w.apiUrl,
+        refreshInterval: w.refreshInterval,
+        displayMode: w.displayMode,
+        selectedFields: w.fields,
+        chartConfig: w.chartConfig,
+        data: null,
+        lastUpdated: null,
+        isLoading: false,
+        error: null,
+      });
+    });
+    closeTemplatesModal();
+  };
 
   // Render the active section
   const renderSection = () => {
@@ -55,6 +102,13 @@ export default function Dashboard() {
 
       {/* Modals */}
       <AddWidgetModal />
+      <TemplatesModal
+        isOpen={isTemplatesModalOpen}
+        onClose={closeTemplatesModal}
+        onSelectWidgetTemplate={handleSelectWidgetTemplate}
+        onSelectDashboardTemplate={handleSelectDashboardTemplate}
+        mode={templateMode}
+      />
       <ToastContainer />
     </div>
   );

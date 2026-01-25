@@ -9,12 +9,20 @@ export function useWidgetData(widgetId: string) {
     const updateWidget = useDashboardStore(state => state.updateWidget);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+    const apiUrl = widget?.apiUrl;
+    const refreshInterval = widget?.refreshInterval;
+
     const fetchData = useCallback(async (forceRefresh = false) => {
-        if (!widget) return;
+        if (!apiUrl) return;
 
-        updateWidget(widgetId, { isLoading: true, error: null });
+        // If we already have data and this is a background refresh, 
+        // don't set global loading to true to avoid UI flickering
+        const isInitialFetch = !widget?.data;
+        if (isInitialFetch) {
+            updateWidget(widgetId, { isLoading: true, error: null });
+        }
 
-        const result = await fetchApiData(widget.apiUrl, forceRefresh);
+        const result = await fetchApiData(apiUrl, forceRefresh);
 
         if (result.success) {
             updateWidget(widgetId, {
@@ -24,12 +32,19 @@ export function useWidgetData(widgetId: string) {
                 error: null,
             });
         } else {
+            // STALE-WHILE-REVALIDATION: 
+            // If we have previous data, keep it but stop loading. 
+            // Only show error if we have NO data.
             updateWidget(widgetId, {
                 isLoading: false,
-                error: result.error || 'Failed to fetch data',
+                error: isInitialFetch ? (result.error || 'Failed to fetch data') : null,
             });
+
+            if (!isInitialFetch) {
+                console.warn(`Background refresh failed for widget ${widgetId}, keeping stale data.`);
+            }
         }
-    }, [widget, widgetId, updateWidget]);
+    }, [widgetId, apiUrl, updateWidget, widget?.data]);
 
     // Initial fetch and interval setup
     useEffect(() => {

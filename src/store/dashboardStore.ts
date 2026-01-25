@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { Widget, LayoutItem, Toast } from '@/types';
+import { Widget, LayoutItem, Toast, ApiProvider } from '@/types';
 
 interface DashboardStore {
     // State
@@ -10,14 +10,19 @@ interface DashboardStore {
     layout: LayoutItem[];
     theme: 'dark' | 'light';
     isAddWidgetModalOpen: boolean;
+    isTemplatesModalOpen: boolean;
+    isSettingsModalOpen: boolean;
     editingWidget: Widget | null;
     toasts: Toast[];
+    apiKeys: Record<string, string>;
+    apiProviders: ApiProvider[];
 
     // Widget Actions
     addWidget: (widget: Widget) => void;
     removeWidget: (id: string) => void;
     updateWidget: (id: string, updates: Partial<Widget>) => void;
     refreshWidget: (id: string) => void;
+    refreshAllWidgets: () => void;
 
     // Layout Actions
     updateLayout: (layout: LayoutItem[]) => void;
@@ -25,11 +30,21 @@ interface DashboardStore {
     // Modal Actions
     openAddWidgetModal: () => void;
     closeAddWidgetModal: () => void;
+    openTemplatesModal: () => void;
+    closeTemplatesModal: () => void;
+    openSettingsModal: () => void;
+    closeSettingsModal: () => void;
     setEditingWidget: (widget: Widget | null) => void;
 
     // Theme Actions
     toggleTheme: () => void;
     setTheme: (theme: 'dark' | 'light') => void;
+
+    // API Key Actions
+    setApiKey: (domain: string, key: string) => void;
+    addApiProvider: (provider: ApiProvider) => void;
+    updateApiProvider: (id: string, updates: Partial<ApiProvider>) => void;
+    removeApiProvider: (id: string) => void;
 
     // Toast Actions
     addToast: (toast: Omit<Toast, 'id'>) => void;
@@ -50,8 +65,37 @@ export const useDashboardStore = create<DashboardStore>()(
             layout: [],
             theme: 'dark',
             isAddWidgetModalOpen: false,
+            isTemplatesModalOpen: false,
+            isSettingsModalOpen: false,
             editingWidget: null,
             toasts: [],
+            apiKeys: {},
+            apiProviders: [
+                {
+                    id: 'alphavantage',
+                    name: 'Alpha Vantage',
+                    domain: 'alphavantage.co',
+                    rateLimit: { callsPerMinute: 5, delay: 12100 },
+                    keyParamName: 'apikey',
+                    getKeyUrl: 'https://www.alphavantage.co/support/#api-key'
+                },
+                {
+                    id: 'finnhub',
+                    name: 'Finnhub',
+                    domain: 'finnhub.io',
+                    rateLimit: { callsPerMinute: 60, delay: 1000 },
+                    keyParamName: 'token',
+                    getKeyUrl: 'https://finnhub.io/register'
+                },
+                {
+                    id: 'indianapi',
+                    name: 'IndianAPI',
+                    domain: 'indianapi.in',
+                    rateLimit: { callsPerMinute: 30, delay: 2000 },
+                    keyParamName: 'api_key',
+                    getKeyUrl: 'https://indianapi.in/'
+                }
+            ],
 
             // Widget Actions
             addWidget: (widget) => {
@@ -114,6 +158,17 @@ export const useDashboardStore = create<DashboardStore>()(
                 }));
             },
 
+            refreshAllWidgets: () => {
+                set((state) => ({
+                    widgets: state.widgets.map((w) => ({ ...w, lastUpdated: null }))
+                }));
+                get().addToast({
+                    type: 'info',
+                    title: 'Refreshing All',
+                    message: 'All widgets are being updated...',
+                });
+            },
+
             // Layout Actions
             updateLayout: (layout) => {
                 set({ layout });
@@ -122,9 +177,11 @@ export const useDashboardStore = create<DashboardStore>()(
             // Modal Actions
             openAddWidgetModal: () => set({ isAddWidgetModalOpen: true }),
             closeAddWidgetModal: () => set({ isAddWidgetModalOpen: false, editingWidget: null }),
+            openTemplatesModal: () => set({ isTemplatesModalOpen: true }),
+            closeTemplatesModal: () => set({ isTemplatesModalOpen: false }),
+            openSettingsModal: () => set({ isSettingsModalOpen: true }),
+            closeSettingsModal: () => set({ isSettingsModalOpen: false }),
             setEditingWidget: (widget) => set({ editingWidget: widget }),
-
-            // Theme Actions
             toggleTheme: () => {
                 set((state) => ({
                     theme: state.theme === 'dark' ? 'light' : 'dark',
@@ -133,6 +190,33 @@ export const useDashboardStore = create<DashboardStore>()(
 
             setTheme: (theme) => {
                 set({ theme });
+            },
+
+            // API Key Actions
+            setApiKey: (domain, key) => {
+                set((state) => ({
+                    apiKeys: { ...state.apiKeys, [domain.toLowerCase()]: key }
+                }));
+            },
+
+            addApiProvider: (provider) => {
+                set((state) => ({
+                    apiProviders: [...state.apiProviders, provider]
+                }));
+            },
+
+            updateApiProvider: (id, updates) => {
+                set((state) => ({
+                    apiProviders: state.apiProviders.map(p =>
+                        p.id === id ? { ...p, ...updates } : p
+                    )
+                }));
+            },
+
+            removeApiProvider: (id) => {
+                set((state) => ({
+                    apiProviders: state.apiProviders.filter(p => p.id !== id)
+                }));
             },
 
             // Toast Actions
@@ -158,8 +242,8 @@ export const useDashboardStore = create<DashboardStore>()(
 
             // Data Export/Import
             exportConfig: () => {
-                const { widgets, layout, theme } = get();
-                return JSON.stringify({ widgets, layout, theme }, null, 2);
+                const { widgets, layout, theme, apiKeys, apiProviders } = get();
+                return JSON.stringify({ widgets, layout, theme, apiKeys, apiProviders }, null, 2);
             },
 
             importConfig: (config) => {
@@ -170,6 +254,8 @@ export const useDashboardStore = create<DashboardStore>()(
                             widgets: parsed.widgets,
                             layout: parsed.layout,
                             theme: parsed.theme || 'dark',
+                            apiKeys: parsed.apiKeys || {},
+                            apiProviders: parsed.apiProviders || get().apiProviders,
                         });
                         get().addToast({
                             type: 'success',
@@ -196,6 +282,8 @@ export const useDashboardStore = create<DashboardStore>()(
                 widgets: state.widgets,
                 layout: state.layout,
                 theme: state.theme,
+                apiKeys: state.apiKeys,
+                apiProviders: state.apiProviders,
             }),
         }
     )

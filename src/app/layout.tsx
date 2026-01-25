@@ -15,36 +15,40 @@ export const metadata: Metadata = {
   authors: [{ name: "Fin-BOARD Team" }],
 };
 
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <body className={`${inter.variable} font-sans antialiased`}>
-        {/* Animated Background */}
-        <div className="animated-bg" />
+        <ThemeProvider>
+          {/* Animated Background */}
+          <div className="animated-bg" />
 
-        {/* Floating Particles */}
-        <div className="particles">
-          {[...Array(15)].map((_, i) => (
-            <div
-              key={i}
-              className="particle"
-              style={{
-                left: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 15}s`,
-                animationDuration: `${15 + Math.random() * 10}s`,
-              }}
-            />
-          ))}
-        </div>
+          {/* Floating Particles */}
+          <div className="particles">
+            {[...Array(15)].map((_, i) => (
+              <div
+                key={i}
+                className="particle"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  animationDelay: `${Math.random() * 15}s`,
+                  animationDuration: `${15 + Math.random() * 10}s`,
+                }}
+              />
+            ))}
+          </div>
 
-        {/* Main Content */}
-        <main className="relative z-10 min-h-screen">
-          {children}
-        </main>
+          {/* Main Content */}
+          <main className="relative z-10 min-h-screen">
+            {children}
+          </main>
+        </ThemeProvider>
       </body>
     </html>
   );

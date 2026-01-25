@@ -10,10 +10,10 @@ export function AddWidgetCard() {
     return (
         <motion.button
             onClick={openAddWidgetModal}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
             className="
-        w-full h-full min-h-[200px]
+        w-full h-full
         flex flex-col items-center justify-center gap-4
         rounded-2xl border-2 border-dashed border-[var(--border-default)]
         bg-[var(--bg-surface)]/30 backdrop-blur-sm
@@ -25,7 +25,7 @@ export function AddWidgetCard() {
             <motion.div
                 className="
           flex items-center justify-center
-          w-14 h-14 rounded-xl
+          w-10 h-10 rounded-xl
           bg-[var(--primary)] text-black
           group-hover:shadow-glow
           transition-shadow duration-300
@@ -33,15 +33,12 @@ export function AddWidgetCard() {
                 whileHover={{ rotate: 90 }}
                 transition={{ type: 'spring', stiffness: 300 }}
             >
-                <Plus className="w-7 h-7" />
+                <Plus className="w-5 h-5" />
             </motion.div>
 
             <div className="text-center">
-                <p className="font-semibold text-[var(--text-primary)] mb-1">
+                <p className="font-semibold text-[var(--text-primary)]">
                     Add Widget
-                </p>
-                <p className="text-xs text-[var(--text-muted)]">
-                    Connect to a finance API and<br />create a custom widget
                 </p>
             </div>
         </motion.button>

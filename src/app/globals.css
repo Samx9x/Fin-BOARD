@@ -9,6 +9,8 @@
   --primary: #00d09c;
   --primary-hover: #00b386;
   --primary-glow: rgba(0, 208, 156, 0.4);
+  --chart-fill-opacity: 0.4;
+  --chart-line-width: 2.5;
 
   /* Background Layers */
   --bg-base: #0b1426;
@@ -41,26 +43,35 @@
 
 /* Light Theme */
 html[data-theme="light"] {
-  --primary: #00a87d;
-  --primary-hover: #008f6b;
-  --primary-glow: rgba(0, 168, 125, 0.3);
+  --primary: #008f6b;
+  /* Stronger green for light mode */
+  --primary-hover: #007a5c;
+  --primary-glow: rgba(0, 143, 107, 0.2);
+  --chart-fill-opacity: 0.6;
+  /* Significantly higher opacity for visibility */
+  --chart-line-width: 3.5;
 
-  --bg-base: #f8fafc;
+  --bg-base: #f1f5f9;
+  /* Slate 100 - consistent background */
   --bg-surface: #ffffff;
-  --bg-elevated: #f1f5f9;
-  --bg-card: rgba(255, 255, 255, 0.9);
+  --bg-elevated: #e2e8f0;
+  /* Slate 200 */
+  --bg-card: #ffffff;
 
   --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  /* Slate 900 */
+  --text-secondary: #334155;
+  /* Slate 700 */
+  --text-muted: #64748b;
+  /* Slate 500 */
 
-  --border-subtle: rgba(0, 0, 0, 0.06);
-  --border-default: rgba(0, 0, 0, 0.1);
-  --border-hover: rgba(0, 168, 125, 0.5);
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-default: rgba(0, 0, 0, 0.12);
+  --border-hover: rgba(0, 143, 107, 0.4);
 
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.15);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.05), 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1), 0 20px 48px rgba(0, 0, 0, 0.1);
 }
 
 @theme inline {
@@ -447,14 +458,61 @@ html[data-theme="light"] .animated-bg {
   opacity: 1;
 }
 
-/* Corner resize handle styling */
+/* Corner and edge resize handles styling */
 .react-resizable-handle::after {
   border-color: var(--primary) !important;
   width: 8px !important;
   height: 8px !important;
   border-width: 0 3px 3px 0 !important;
+}
+
+.react-resizable-handle-se::after {
   right: 5px !important;
   bottom: 5px !important;
+}
+
+.react-resizable-handle-s {
+  bottom: 0 !important;
+  left: 50% !important;
+  margin-left: -10px !important;
+  width: 20px !important;
+  height: 10px !important;
+  cursor: ns-resize !important;
+}
+
+.react-resizable-handle-s::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 2px;
+  background: var(--primary);
+  opacity: 0.5;
+  border-radius: 1px;
+}
+
+.react-resizable-handle-e {
+  right: 0 !important;
+  top: 50% !important;
+  margin-top: -10px !important;
+  width: 10px !important;
+  height: 20px !important;
+  cursor: ew-resize !important;
+}
+
+.react-resizable-handle-e::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 12px;
+  background: var(--primary);
+  opacity: 0.5;
+  border-radius: 1px;
 }
 
 /* Drag handle cursor */
