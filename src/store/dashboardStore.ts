@@ -1,0 +1,202 @@
+'use client';
+
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { Widget, LayoutItem, Toast } from '@/types';
+
+interface DashboardStore {
+    // State
+    widgets: Widget[];
+    layout: LayoutItem[];
+    theme: 'dark' | 'light';
+    isAddWidgetModalOpen: boolean;
+    editingWidget: Widget | null;
+    toasts: Toast[];
+
+    // Widget Actions
+    addWidget: (widget: Widget) => void;
+    removeWidget: (id: string) => void;
+    updateWidget: (id: string, updates: Partial<Widget>) => void;
+    refreshWidget: (id: string) => void;
+
+    // Layout Actions
+    updateLayout: (layout: LayoutItem[]) => void;
+
+    // Modal Actions
+    openAddWidgetModal: () => void;
+    closeAddWidgetModal: () => void;
+    setEditingWidget: (widget: Widget | null) => void;
+
+    // Theme Actions
+    toggleTheme: () => void;
+    setTheme: (theme: 'dark' | 'light') => void;
+
+    // Toast Actions
+    addToast: (toast: Omit<Toast, 'id'>) => void;
+    removeToast: (id: string) => void;
+
+    // Data Export/Import
+    exportConfig: () => string;
+    importConfig: (config: string) => boolean;
+}
+
+const generateId = () => Math.random().toString(36).substring(2, 15);
+
+export const useDashboardStore = create<DashboardStore>()(
+    persist(
+        (set, get) => ({
+            // Initial State
+            widgets: [],
+            layout: [],
+            theme: 'dark',
+            isAddWidgetModalOpen: false,
+            editingWidget: null,
+            toasts: [],
+
+            // Widget Actions
+            addWidget: (widget) => {
+                const newWidget = { ...widget, id: generateId() };
+                const widgetCount = get().widgets.length;
+
+                // Calculate position for new widget
+                const newLayoutItem: LayoutItem = {
+                    i: newWidget.id,
+                    x: (widgetCount * 4) % 12,
+                    y: Math.floor(widgetCount / 3) * 4,
+                    w: widget.displayMode === 'table' ? 8 : 4,
+                    h: widget.displayMode === 'table' ? 5 : 4,
+                    minW: 3,
+                    minH: 3,
+                };
+
+                set((state) => ({
+                    widgets: [...state.widgets, newWidget],
+                    layout: [...state.layout, newLayoutItem],
+                }));
+
+                get().addToast({
+                    type: 'success',
+                    title: 'Widget Added',
+                    message: `${widget.name} has been added to your dashboard`,
+                });
+            },
+
+            removeWidget: (id) => {
+                const widget = get().widgets.find(w => w.id === id);
+                set((state) => ({
+                    widgets: state.widgets.filter((w) => w.id !== id),
+                    layout: state.layout.filter((l) => l.i !== id),
+                }));
+
+                if (widget) {
+                    get().addToast({
+                        type: 'info',
+                        title: 'Widget Removed',
+                        message: `${widget.name} has been removed`,
+                    });
+                }
+            },
+
+            updateWidget: (id, updates) => {
+                set((state) => ({
+                    widgets: state.widgets.map((w) =>
+                        w.id === id ? { ...w, ...updates } : w
+                    ),
+                }));
+            },
+
+            refreshWidget: (id) => {
+                // This triggers a re-fetch in the widget component
+                set((state) => ({
+                    widgets: state.widgets.map((w) =>
+                        w.id === id ? { ...w, lastUpdated: null } : w
+                    ),
+                }));
+            },
+
+            // Layout Actions
+            updateLayout: (layout) => {
+                set({ layout });
+            },
+
+            // Modal Actions
+            openAddWidgetModal: () => set({ isAddWidgetModalOpen: true }),
+            closeAddWidgetModal: () => set({ isAddWidgetModalOpen: false, editingWidget: null }),
+            setEditingWidget: (widget) => set({ editingWidget: widget }),
+
+            // Theme Actions
+            toggleTheme: () => {
+                set((state) => ({
+                    theme: state.theme === 'dark' ? 'light' : 'dark',
+                }));
+            },
+
+            setTheme: (theme) => {
+                set({ theme });
+            },
+
+            // Toast Actions
+            addToast: (toast) => {
+                const id = generateId();
+                const newToast = { ...toast, id };
+
+                set((state) => ({
+                    toasts: [...state.toasts, newToast],
+                }));
+
+                // Auto-remove toast after duration
+                setTimeout(() => {
+                    get().removeToast(id);
+                }, toast.duration || 4000);
+            },
+
+            removeToast: (id) => {
+                set((state) => ({
+                    toasts: state.toasts.filter((t) => t.id !== id),
+                }));
+            },
+
+            // Data Export/Import
+            exportConfig: () => {
+                const { widgets, layout, theme } = get();
+                return JSON.stringify({ widgets, layout, theme }, null, 2);
+            },
+
+            importConfig: (config) => {
+                try {
+                    const parsed = JSON.parse(config);
+                    if (parsed.widgets && parsed.layout) {
+                        set({
+                            widgets: parsed.widgets,
+                            layout: parsed.layout,
+                            theme: parsed.theme || 'dark',
+                        });
+                        get().addToast({
+                            type: 'success',
+                            title: 'Config Imported',
+                            message: 'Dashboard configuration has been restored',
+                        });
+                        return true;
+                    }
+                    return false;
+                } catch {
+                    get().addToast({
+                        type: 'error',
+                        title: 'Import Failed',
+                        message: 'Invalid configuration file',
+                    });
+                    return false;
+                }
+            },
+        }),
+        {
+            name: 'finboard-storage',
+            storage: createJSONStorage(() => localStorage),
+            partialize: (state) => ({
+                widgets: state.widgets,
+                layout: state.layout,
+                theme: state.theme,
+            }),
+        }
+    )
+);
