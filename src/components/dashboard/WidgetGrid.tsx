@@ -126,9 +126,9 @@ export function WidgetGrid({ widgets: propWidgets }: WidgetGridProps) {
         return widgetLayouts;
     }, [layout, widgets, cols]);
 
-    const handleLayoutChange = useCallback((newLayout: any[]) => {
+    const handleLayoutChange = useCallback((newLayout: any) => {
         // Filter out the add-widget placeholder and save
-        const widgetLayout: LayoutItem[] = newLayout
+        const widgetLayout: LayoutItem[] = (newLayout as any[])
             .filter(item => item.i !== 'add-widget')
             .map(({ i, x, y, w, h }) => ({
                 i,
