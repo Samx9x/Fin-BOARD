@@ -13,6 +13,13 @@ export interface WidgetTemplate {
     displayMode: 'card' | 'chart' | 'table';
     apiUrl: string;
     fields: Array<{ path: string; label: string; format?: 'currency' | 'percentage' | 'number' | 'text' }>;
+    refreshInterval?: number;
+    chartConfig?: {
+        type: 'line' | 'area' | 'candlestick';
+        xAxisField?: string;
+        yAxisField?: string;
+        interval?: 'daily' | 'weekly' | 'monthly';
+    };
 }
 
 export interface DashboardTemplate {
