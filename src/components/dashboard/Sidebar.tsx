@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import {
-    Home, Wallet, BarChart3, Bell, Settings, LogOut
+    Home, Wallet, BarChart3, BookOpen, Settings, LogOut
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -17,17 +17,20 @@ const topNavItems = [
 ];
 
 const bottomNavItems = [
-    { id: 'alerts', icon: Bell, label: 'Alerts' },
+    { id: 'guide', icon: BookOpen, label: 'Guide' },
     { id: 'settings', icon: Settings, label: 'Settings' },
 ];
 
 export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
     return (
         <aside className="
-      fixed left-0 top-0 bottom-0 z-50
+      fixed left-6 top-6 bottom-6 z-50
       flex flex-col items-center
       w-[72px] py-6
-      bg-[var(--bg-base)]
+      bg-[var(--bg-elevated)]/90 backdrop-blur-md
+      rounded-[28px]
+      border border-[var(--border-subtle)]
+      shadow-2xl
     ">
             {/* Top Navigation Group */}
             <nav className="flex flex-col items-center">
@@ -83,7 +86,7 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
                   transition-all duration-300
                   ${isActive
                                         ? 'bg-white text-[#00d09c] shadow-lg'
-                                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                                        : 'text-white/60 hover:text-white'
                                     }
                 `}
                                 title={item.label}

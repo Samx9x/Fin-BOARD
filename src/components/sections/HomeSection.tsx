@@ -33,7 +33,7 @@ export function HomeSection() {
     });
 
     return (
-        <div className="p-6">
+        <div className="">
             <div className="max-w-[1400px] mx-auto">
                 {/* Page Title */}
                 <div className="flex items-center justify-between mb-6">

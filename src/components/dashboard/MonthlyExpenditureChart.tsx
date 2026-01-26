@@ -51,7 +51,7 @@ export function MonthlyExpenditureChart() {
 
             {/* Chart Container */}
             <div className="relative h-[320px]">
-                <svg width="100%" height="100%" viewBox="0 0 700 320" preserveAspectRatio="xMidYMid meet">
+                <svg width="100%" height="100%" viewBox="0 0 1020 320" preserveAspectRatio="xMidYMid meet">
                     {/* Define diagonal stripe pattern */}
                     <defs>
                         <pattern id="diagonalStripes" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
@@ -74,7 +74,7 @@ export function MonthlyExpenditureChart() {
                                     <line
                                         x1="60"
                                         y1={y}
-                                        x2="680"
+                                        x2="1000"
                                         y2={y}
                                         stroke="var(--border-subtle)"
                                         strokeWidth="1"
@@ -139,8 +139,15 @@ export function MonthlyExpenditureChart() {
                                                 transition={{ duration: 0.2 }}
                                             >
                                                 <rect
-                                                    x={x + barWidth / 2 - 45}
-                                                    y={y - 40}
+                                                    x={
+                                                        // Adjust tooltip position for edge bars to prevent overflow
+                                                        index === 0
+                                                            ? x // Align left for first bar
+                                                            : index === monthlyData.length - 1
+                                                                ? x + barWidth - 90 // Align right for last bar
+                                                                : x + barWidth / 2 - 45 // Center for middle bars
+                                                    }
+                                                    y={Math.max(y - 40, 10)} // Prevent top overflow
                                                     width="90"
                                                     height="32"
                                                     rx="16"
@@ -149,8 +156,14 @@ export function MonthlyExpenditureChart() {
                                                     strokeWidth="2"
                                                 />
                                                 <text
-                                                    x={x + barWidth / 2}
-                                                    y={y - 19}
+                                                    x={
+                                                        index === 0
+                                                            ? x + 45
+                                                            : index === monthlyData.length - 1
+                                                                ? x + barWidth - 45
+                                                                : x + barWidth / 2
+                                                    }
+                                                    y={Math.max(y - 19, 31)}
                                                     fill="var(--text-primary)"
                                                     fontSize="14"
                                                     fontWeight="600"
@@ -162,7 +175,7 @@ export function MonthlyExpenditureChart() {
                                                 {/* Dot connector */}
                                                 <circle
                                                     cx={x + barWidth / 2}
-                                                    cy={y - 5}
+                                                    cy={Math.max(y - 5, 47)}
                                                     r="6"
                                                     fill="var(--primary)"
                                                     stroke="var(--bg-elevated)"

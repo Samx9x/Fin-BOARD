@@ -31,15 +31,46 @@ export interface DashboardTemplate {
 
 const widgetTemplates: WidgetTemplate[] = [
     {
-        id: 'btc-price',
-        name: 'Bitcoin Price',
-        icon: '₿',
-        description: 'Live BTC to USD price',
+        id: 'btc-multi-currency',
+        name: 'BTC Multi-Currency',
+        icon: '💰',
+        description: 'Live Bitcoin rates in INR, USD, and ETH',
         displayMode: 'card',
+        apiUrl: 'https://api.coinbase.com/v2/exchange-rates?currency=BTC',
+        fields: [
+            { path: 'data.rates.INR', label: 'INR', format: 'currency' },
+            { path: 'data.rates.USD', label: 'USD', format: 'currency' },
+            { path: 'data.rates.ETH', label: 'ETH', format: 'number' }
+        ]
+    },
+    {
+        id: 'crypto-market',
+        name: 'Crypto Market Overview',
+        icon: '📊',
+        description: 'Top 10 cryptocurrencies status table',
+        displayMode: 'table',
+        apiUrl: 'https://api.coincap.io/v2/assets?limit=10',
+        fields: [
+            { path: 'name', label: 'Name', format: 'text' },
+            { path: 'symbol', label: 'Symbol', format: 'text' },
+            { path: 'priceUsd', label: 'Price (USD)', format: 'currency' },
+            { path: 'changePercent24Hr', label: '24h Change', format: 'percentage' }
+        ]
+    },
+    {
+        id: 'btc-candlestick',
+        name: 'Bitcoin Candlestick',
+        icon: '🕯️',
+        description: 'Live BTC candlestick analysis chart',
+        displayMode: 'chart',
         apiUrl: 'https://api.coinbase.com/v2/prices/BTC-USD/spot',
         fields: [
             { path: 'data.amount', label: 'Price', format: 'currency' }
-        ]
+        ],
+        chartConfig: {
+            type: 'candlestick',
+            interval: 'daily'
+        }
     },
     {
         id: 'eth-price',
@@ -63,7 +94,8 @@ export function TemplatesModal() {
             displayMode: template.displayMode,
             apiUrl: template.apiUrl,
             selectedFields: template.fields,
-            refreshInterval: 60000,
+            chartConfig: template.chartConfig,
+            refreshInterval: 60,
             lastUpdated: null,
             description: template.description,
             id: '',

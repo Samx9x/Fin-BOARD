@@ -65,20 +65,10 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
                         }}
                         className={`
               relative w-full ${sizeClasses[size]} 
-              glass-strong shadow-lg overflow-hidden
+              glass-strong bg-[var(--bg-surface)] shadow-lg overflow-hidden
+              rounded-[24px]
             `}
                     >
-                        {/* Animated border glow */}
-                        <div className="absolute inset-0 rounded-[16px] p-[1px] overflow-hidden pointer-events-none">
-                            <div
-                                className="absolute inset-[-50%] animate-spin"
-                                style={{
-                                    background: 'conic-gradient(from 0deg, transparent, var(--primary), transparent)',
-                                    animationDuration: '4s',
-                                }}
-                            />
-                        </div>
-
                         {/* Header */}
                         {title && (
                             <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-subtle)]">

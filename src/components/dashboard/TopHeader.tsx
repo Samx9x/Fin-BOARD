@@ -16,34 +16,17 @@ export function TopHeader({ userName }: TopHeaderProps) {
         <header className="
       sticky top-0 z-40
       flex items-center justify-between
-      h-16 px-8
+      h-28 px-[50px]
       bg-gradient-to-r from-[var(--bg-base)] via-[var(--bg-surface)] to-[var(--bg-base)]
       border-b border-[var(--border-subtle)]
     ">
             {/* Logo / Brand */}
-            <div className="flex items-center gap-3">
-                <div className="
-          w-10 h-10 rounded-xl
-          bg-gradient-to-br from-[var(--primary)] to-teal-600
-          flex items-center justify-center
-          shadow-lg shadow-[var(--primary)]/20
-        ">
-                    <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="w-6 h-6 text-black"
-                    >
-                        <path d="M22 22H2L14.5 2C14.5 2 13 8 18 14C20.5 17 22 22 22 22Z" />
-                    </svg>
-                </div>
-                <h1 className="text-2xl font-bold tracking-tight flex items-center">
-                    <span className="text-[var(--primary)]">Fin</span>
-                    <span className="text-[var(--text-primary)]">-BOARD</span>
-                </h1>
+            <div className="flex items-center -ml-[148px]">
+                <img
+                    src={isDark ? "/logo-dark.png" : "/logo-light.png"}
+                    alt="Fin-BOARD"
+                    className="w-[500px] h-auto object-contain"
+                />
             </div>
 
             {/* Search Bar */}

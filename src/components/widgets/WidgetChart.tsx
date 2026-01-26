@@ -163,7 +163,9 @@ export function WidgetChart({ widget }: WidgetChartProps) {
                 };
 
                 numericFields.forEach(f => {
-                    point[f.label] = Number(getValueByPath(item, f.path.replace(/^\[0\]\.?/, ''))) || 0;
+                    const value = getValueByPath(item, f.path.replace(/^\[0\]\.?/, ''));
+                    const numValue = value != null ? Number(value) : 0;
+                    point[f.label] = isNaN(numValue) ? 0 : numValue;
                 });
 
                 return point;
@@ -196,26 +198,42 @@ export function WidgetChart({ widget }: WidgetChartProps) {
                 const point: any = { name: getLabel(date) };
 
                 numericFields.forEach(f => {
-                    const currentVal = Number(getValueByPath(data, f.path));
-                    const variance = currentVal * 0.1;
+                    const rawValue = getValueByPath(data, f.path);
+                    const currentVal = rawValue != null ? Number(rawValue) : 0;
+                    const safeCurrentVal = isNaN(currentVal) ? 0 : currentVal;
+
+                    const variance = safeCurrentVal * 0.1;
                     const progress = (points - 1 - i) / (points - 1);
                     const randomWalk = (Math.random() - 0.5) * variance;
-                    const val = currentVal - variance * 0.5 + (variance * 0.5 * progress) + randomWalk;
+                    const val = safeCurrentVal - variance * 0.5 + (variance * 0.5 * progress) + randomWalk;
 
-                    point[f.label] = Math.max(0, i === 0 ? currentVal : val);
+                    point[f.label] = Math.max(0, i === 0 ? safeCurrentVal : val);
 
                     if (isCandlestick && numericFields.length === 1) {
                         const spread = point[f.label] * 0.05;
                         point.open = point[f.label] + (Math.random() - 0.5) * spread;
                         point.high = Math.max(point.open, point[f.label]) + Math.random() * (spread * 0.5);
                         point.low = Math.max(0, Math.min(point.open, point[f.label]) - Math.random() * (spread * 0.5));
-                        point.close = i === 0 ? currentVal : point[f.label];
+                        point.close = i === 0 ? safeCurrentVal : point[f.label];
                     }
                 });
 
                 generatedData.push(point);
             }
-            setChartData(generatedData);
+
+            // Final validation: ensure no NaN values
+            const validatedData = generatedData.map(point => {
+                const validPoint: any = { name: point.name };
+                Object.keys(point).forEach(key => {
+                    if (key !== 'name') {
+                        const value = point[key];
+                        validPoint[key] = (typeof value === 'number' && !isNaN(value)) ? value : 0;
+                    }
+                });
+                return validPoint;
+            });
+
+            setChartData(validatedData);
         }
     }, [data, widget.chartConfig, widget.selectedFields, interval]);
 

@@ -2,14 +2,11 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, ChevronDown } from 'lucide-react';
-import { RevenueChart, StatCard, AvailableDonut } from '@/components/dashboard/RevenueChart';
-import { WalletCard, TransactionsList } from '@/components/dashboard/WalletSection';
 import { MonthlyExpenditureChart } from '@/components/dashboard/MonthlyExpenditureChart';
 import { BalanceSummaryCard } from '@/components/wallet/BalanceSummaryCard';
-import { CardCarousel, PaymentCard } from '@/components/wallet/CardCarousel';
+import { StackedCardCarousel } from '@/components/wallet/StackedCardCarousel';
 import { CardTransactions, Transaction } from '@/components/wallet/CardTransactions';
-import { AccountEvolution, Account } from '@/components/wallet/AccountEvolution';
+import { PaymentCard } from '@/components/wallet/StackedCardCarousel';
 
 // Filter tabs for wallet
 const walletTabs = ['All', 'Withdrawal', 'Savings', 'Deposit'];
@@ -64,34 +61,12 @@ const sampleTransactions: Transaction[] = [
     { id: '6', cardId: '3', merchant: 'BestBuy', description: 'Buy in a commerce', amount: -499, type: 'debit', date: 'Friday 31', time: '14:20', category: 'Electronics', icon: '🛒' },
 ];
 
-// Sample accounts
-const sampleAccounts: Account[] = [
-    {
-        id: '1',
-        name: 'Principal Account',
-        bankName: 'Bank brand name',
-        accountNumber: '2845',
-        interbank: '177632',
-        accountType: 'Savings account',
-        balance: 125320.00,
-    },
-    {
-        id: '2',
-        name: 'Secondary Account',
-        bankName: 'Chase Bank',
-        accountNumber: '5429',
-        interbank: '189234',
-        accountType: 'Checking account',
-        balance: 45200.00,
-    },
-];
-
 export function WalletSection() {
     const [activeTab, setActiveTab] = useState('All');
-    const [selectedCardId, setSelectedCardId] = useState<string | undefined>(sampleCards[0]?.id);
+    const [selectedCardId, setSelectedCardId] = useState<string>(sampleCards[0].id);
 
     return (
-        <div className="p-6 overflow-auto">
+        <div className="">
             <div className="max-w-[1400px] mx-auto">
                 {/* Page Title & Tabs */}
                 <div className="flex items-center gap-6 mb-6">
@@ -125,57 +100,33 @@ export function WalletSection() {
                     })}
                 </div>
 
-                {/* Balance Summary Card */}
-                <div className="mb-6">
-                    <BalanceSummaryCard
-                        totalBalance={20129.00}
-                        income={20129.00}
-                        expenses={20129.00}
-                    />
-                </div>
-
-                {/* Main Grid Layout */}
+                {/* Main Grid Layout: Left (Balance + Chart) | Right (Cards) */}
                 <div className="grid grid-cols-12 gap-6">
-                    {/* Left Column - Charts & Cards */}
-                    <div className="col-span-8 space-y-6">
+                    {/* Left Column - Balance & Chart */}
+                    <div className="col-span-7 space-y-6">
+                        {/* Balance Summary Card - Compact horizontal */}
+                        <BalanceSummaryCard
+                            totalBalance={20129.00}
+                            income={20129.00}
+                            expenses={20129.00}
+                        />
+
                         {/* Monthly Expenditure Chart */}
                         <MonthlyExpenditureChart />
-
-                        {/* Card Carousel and Transactions */}
-                        <div className="grid grid-cols-2 gap-6">
-                            <CardCarousel cards={sampleCards} />
-                            <CardTransactions
-                                transactions={sampleTransactions}
-                                selectedCardId={selectedCardId}
-                            />
-                        </div>
-
-                        {/* Account Evolution */}
-                        <AccountEvolution
-                            accounts={sampleAccounts}
-                            selectedAccountId={sampleAccounts[0].id}
-                        />
                     </div>
 
-                    {/* Right Column - Wallet & Stats */}
-                    <div className="col-span-4 space-y-6">
-                        {/* Bottom Row - Available + Income/Expense */}
-                        <AvailableDonut />
-
-                        {/* Income Card */}
-                        <StatCard
-                            label="Income"
-                            value={4585}
-                            trend="up"
-                            description="Monitor your income regularly to stay on track and allocate a portion to savings each month for better financial growth."
+                    {/* Right Column - Cards & Transactions */}
+                    <div className="col-span-5 space-y-6">
+                        {/* Stacked Card Carousel */}
+                        <StackedCardCarousel
+                            cards={sampleCards}
+                            onCardChange={(cardId) => setSelectedCardId(cardId)}
                         />
 
-                        {/* Expense Card */}
-                        <StatCard
-                            label="Expense"
-                            value={2585}
-                            trend="down"
-                            description="Track your expenses daily to avoid overspending and categorize them to better manage your budget."
+                        {/* Card Transactions */}
+                        <CardTransactions
+                            transactions={sampleTransactions}
+                            selectedCardId={selectedCardId}
                         />
                     </div>
                 </div>

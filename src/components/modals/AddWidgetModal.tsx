@@ -243,10 +243,10 @@ export function AddWidgetModal() {
             title={editingWidget ? 'Edit Widget' : 'Add New Widget'}
             size="lg"
         >
-            <div className="p-6 overflow-y-auto max-h-[85vh] space-y-5 custom-scrollbar">
+            <div className="p-6 overflow-y-auto max-h-[85vh] space-y-5 custom-scrollbar bg-[var(--bg-surface)]">
                 {/* Widget Name */}
                 <div>
-                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
+                    <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-1.5">
                         Widget Name
                     </label>
                     <input
@@ -254,26 +254,26 @@ export function AddWidgetModal() {
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="e.g., Bitcoin"
-                        className="input"
+                        className="input bg-[var(--bg-elevated)] border-[var(--border-default)] text-[var(--text-primary)]"
                     />
                 </div>
 
                 {/* Widget Description */}
                 <div>
-                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
+                    <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-1.5">
                         Description (Optional)
                     </label>
                     <textarea
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         placeholder="Describe what this widget shows..."
-                        className="input min-h-[80px] py-3 resize-none"
+                        className="input min-h-[80px] py-3 resize-none bg-[var(--bg-elevated)] border-[var(--border-default)] text-[var(--text-primary)]"
                     />
                 </div>
 
                 {/* Saved API Providers Dropdown */}
                 <div>
-                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
+                    <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-1.5">
                         Saved API Providers
                     </label>
                     <select
@@ -285,14 +285,14 @@ export function AddWidgetModal() {
                                 setApiUrl(`https://${provider.domain}/`);
                             }
                         }}
-                        className="input"
+                        className="input bg-[var(--bg-elevated)] border-[var(--border-default)] text-[var(--text-primary)]"
                         defaultValue=""
                     >
-                        <option value="" disabled>Select a configured API provider...</option>
+                        <option value="" disabled className="bg-[var(--bg-surface)]">Select a configured API provider...</option>
                         {useDashboardStore.getState().apiProviders.map(provider => {
                             const hasKey = !!useDashboardStore.getState().apiKeys[provider.domain];
                             return (
-                                <option key={provider.id} value={provider.id}>
+                                <option key={provider.id} value={provider.id} className="bg-[var(--bg-surface)]">
                                     {provider.name} {hasKey ? '✓' : '(⚠ No Key)'} - {provider.domain}
                                 </option>
                             );
@@ -305,7 +305,7 @@ export function AddWidgetModal() {
 
                 {/* API URL */}
                 <div>
-                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
+                    <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-1.5">
                         API URL
                     </label>
                     <div className="flex gap-2">
@@ -317,14 +317,12 @@ export function AddWidgetModal() {
                                 setTestResult(null);
                             }}
                             placeholder="https://api.coinbase.com/v2/prices/BTC-USD/spot"
-                            className="input flex-1"
+                            className="input flex-1 bg-[var(--bg-elevated)] border-[var(--border-default)] text-[var(--text-primary)]"
                         />
-                        <motion.button
+                        <button
                             onClick={() => handleTestApi()}
                             disabled={!apiUrl || isTesting}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            className="btn btn-primary flex items-center gap-2 px-4 shadow-none"
+                            className="btn btn-primary flex items-center gap-2 px-4 shadow-none min-w-[100px]"
                         >
                             {isTesting ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -332,45 +330,40 @@ export function AddWidgetModal() {
                                 <RefreshCw className="w-4 h-4" />
                             )}
                             Test
-                        </motion.button>
+                        </button>
                     </div>
                 </div>
 
                 {/* API Test Result */}
-                <AnimatePresence>
-                    {testResult && (
-                        <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className={`
-                                overflow-hidden px-4 py-2.5 rounded-lg text-sm flex items-center gap-2
-                                ${testResult.success
-                                    ? 'bg-[var(--success-subtle)] text-[var(--success)] border border-[var(--success-border)]'
-                                    : 'bg-[var(--error-subtle)] text-[var(--error)] border border-[var(--error-border)]'
-                                }
-                            `}
-                        >
-                            {testResult.success ? (
-                                <CheckCircle className="w-4 h-4 shrink-0" />
-                            ) : (
-                                <AlertCircle className="w-4 h-4 shrink-0" />
-                            )}
-                            <span>{testResult.message}</span>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                {testResult && (
+                    <div
+                        className={`
+                            px-4 py-2.5 rounded-lg text-sm flex items-center gap-2
+                            ${testResult.success
+                                ? 'bg-[var(--success-subtle)] text-[var(--success)] border border-[var(--success-border)]'
+                                : 'bg-[var(--error-subtle)] text-[var(--error)] border border-[var(--error-border)]'
+                            }
+                        `}
+                    >
+                        {testResult.success ? (
+                            <CheckCircle className="w-4 h-4 shrink-0" />
+                        ) : (
+                            <AlertCircle className="w-4 h-4 shrink-0" />
+                        )}
+                        <span>{testResult.message}</span>
+                    </div>
+                )}
 
                 {/* Refresh Interval */}
                 <div>
-                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
+                    <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-1.5">
                         Refresh Interval (seconds)
                     </label>
                     <input
                         type="number"
                         value={refreshInterval}
                         onChange={(e) => setRefreshInterval(parseInt(e.target.value) || 30)}
-                        className="input"
+                        className="input bg-[var(--bg-elevated)] border-[var(--border-default)] text-[var(--text-primary)]"
                     />
                 </div>
 
@@ -444,14 +437,14 @@ export function AddWidgetModal() {
                             className={`pb-2 text-sm font-medium transition-colors relative ${explorerMode === 'fields' ? 'text-[var(--primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
                         >
                             Fields List
-                            {explorerMode === 'fields' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--primary)]" />}
+                            {explorerMode === 'fields' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--primary)]" />}
                         </button>
                         <button
                             onClick={() => setExplorerMode('json')}
                             className={`pb-2 text-sm font-medium transition-colors relative ${explorerMode === 'json' ? 'text-[var(--primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
                         >
                             Raw Response
-                            {explorerMode === 'json' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--primary)]" />}
+                            {explorerMode === 'json' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--primary)]" />}
                         </button>
                     </div>
 
@@ -469,7 +462,7 @@ export function AddWidgetModal() {
                                         value={fieldSearch}
                                         onChange={(e) => setFieldSearch(e.target.value)}
                                         placeholder="Search for fields..."
-                                        className="input pl-9"
+                                        className="input pl-9 bg-[var(--bg-elevated)] border-[var(--border-default)] text-[var(--text-primary)]"
                                     />
                                 </div>
                             </div>
@@ -483,7 +476,7 @@ export function AddWidgetModal() {
                                     onChange={(e) => setShowArraysOnly(e.target.checked)}
                                     className="w-4 h-4 rounded border-[var(--border-default)] accent-[var(--primary)]"
                                 />
-                                <label htmlFor="showArraysOnly" className="text-sm text-[var(--text-secondary)]">
+                                <label htmlFor="showArraysOnly" className="text-sm text-[var(--text-secondary)] font-medium">
                                     Show arrays only (for table view)
                                 </label>
                             </div>
@@ -568,7 +561,7 @@ export function AddWidgetModal() {
                         </p>
                         <div className="space-y-2">
                             {selectedFields.length === 0 ? (
-                                <div className="p-4 border border-dashed border-[var(--border-default)] rounded-xl text-center text-xs text-[var(--text-muted)]">
+                                <div className="p-4 border border-dashed border-[var(--border-default)] rounded-xl text-center text-xs text-[var(--text-muted)] font-medium">
                                     No fields selected yet
                                 </div>
                             ) : (
@@ -590,12 +583,12 @@ export function AddWidgetModal() {
                                                     value={field.label}
                                                     onChange={(e) => handleUpdateFieldLabel(field.path, e.target.value)}
                                                     placeholder="Label"
-                                                    className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded px-3 py-1.5 text-sm focus:border-[var(--primary)] outline-none"
+                                                    className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded px-3 py-1.5 text-sm font-medium text-[var(--text-primary)] focus:border-[var(--primary)] outline-none"
                                                 />
                                                 <select
                                                     value={field.format}
                                                     onChange={(e) => handleUpdateFieldFormat(field.path, e.target.value as SelectedField['format'])}
-                                                    className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded px-3 py-1.5 text-sm focus:border-[var(--primary)] outline-none"
+                                                    className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded px-3 py-1.5 text-sm font-medium text-[var(--text-primary)] focus:border-[var(--primary)] outline-none"
                                                 >
                                                     <option value="text">Standard Text</option>
                                                     <option value="number">Number</option>
@@ -612,19 +605,17 @@ export function AddWidgetModal() {
                 </div>
 
                 {/* Footer Actions */}
-                <div className="pt-4 flex justify-end gap-3 sticky bottom-0 bg-[var(--bg-surface)] py-2 border-t border-[var(--border-subtle)]">
-                    <button onClick={closeAddWidgetModal} className="btn btn-ghost text-sm">
+                <div className="pt-8 flex justify-end gap-3 pb-2 transition-all">
+                    <button onClick={closeAddWidgetModal} className="btn btn-ghost text-sm font-medium">
                         Cancel
                     </button>
-                    <motion.button
+                    <button
                         onClick={handleSubmit}
                         disabled={!canSubmit}
-                        whileHover={{ scale: (canSubmit as unknown as boolean) ? 1.02 : 1 }}
-                        whileTap={{ scale: (canSubmit as unknown as boolean) ? 0.98 : 1 }}
-                        className="btn btn-primary px-10 shadow-lg shadow-[var(--primary)]/10 text-sm font-bold"
+                        className={`btn btn-primary px-10 shadow-lg text-sm font-bold ${!canSubmit ? 'opacity-50 cursor-not-allowed transform-none' : 'shadow-[var(--primary)]/10'}`}
                     >
                         {editingWidget ? 'Save Changes' : 'Add Widget'}
-                    </motion.button>
+                    </button>
                 </div>
             </div>
         </Modal>
