@@ -30,6 +30,32 @@ Fin-BOARD is a premium, real-time financial dashboard designed for high-impact d
 - **Real-Time Candlesticks**: One-click setup for Bitcoin and Ethereum historical performance charts.
 - **Live Exchange Rates**: Multi-currency conversion cards (BTC/INR/USD).
 
+## 📸 Visual Showcase
+
+| Login & Branding | Registration / Name Entry |
+| :---: | :---: |
+| ![Splash Screen](screenshots/image.png) | ![Name Setup](screenshots/image%20copy.png) |
+
+| Dashboard Overview | Live Market Table |
+| :---: | :---: |
+| ![Dashboard](screenshots/image%20copy%202.png) | ![Market Table](screenshots/image%20copy%203.png) |
+
+| Add Widget (Smart Search) | JSON Field Explorer |
+| :---: | :---: |
+| ![Add Widget](screenshots/image%20copy%204.png) | ![Field Explorer](screenshots/image%20copy%205.png) |
+
+| BTC Candlestick Chart | ETH Historical Data |
+| :---: | :---: |
+| ![BTC Chart](screenshots/image%20copy%206.png) | ![ETH Chart](screenshots/image%20copy%207.png) |
+
+| Advanced Settings | API Key Management |
+| :---: | :---: |
+| ![Settings 1](screenshots/image%20copy%208.png) | ![Settings 2](screenshots/image%20copy%209.png) |
+
+| Multi-Stage Greeting | Final Dashboard View |
+| :---: | :---: |
+| ![Welcome](screenshots/image%20copy%2010.png) | ![Full Dashboard](screenshots/image%20copy%2011.png) |
+
 ## 🚀 Getting Started
 1. **Clone & Install**:
    ```bash

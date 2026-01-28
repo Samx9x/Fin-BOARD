@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
     X, Key, Shield, Info, ExternalLink,
-    Save, Trash2, CheckCircle2, Globe, Plus, Edit2
+    Save, Trash2, CheckCircle2, Globe, Plus, Edit2, User
 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { useDashboardStore } from '@/store/dashboardStore';
@@ -16,7 +16,9 @@ export function SettingsModal() {
         closeSettingsModal,
         apiKeys,
         apiProviders,
+        userName,
         setApiKey,
+        setUserName,
         addApiProvider,
         updateApiProvider,
         removeApiProvider,
@@ -24,6 +26,7 @@ export function SettingsModal() {
     } = useDashboardStore();
 
     const [editingKeys, setEditingKeys] = useState<Record<string, string>>({});
+    const [tempUserName, setTempUserName] = useState(userName);
     const [isAddingProvider, setIsAddingProvider] = useState(false);
     const [newProvider, setNewProvider] = useState<Partial<ApiProvider>>({
         name: '',
@@ -31,6 +34,30 @@ export function SettingsModal() {
         rateLimit: { callsPerMinute: 60, delay: 1000 },
         keyParamName: 'apikey'
     });
+
+    // Update temp name when modal opens or userName changes in store
+    useEffect(() => {
+        if (isSettingsModalOpen) {
+            setTempUserName(userName);
+        }
+    }, [isSettingsModalOpen, userName]);
+
+    const handleSaveUserName = () => {
+        if (!tempUserName.trim()) {
+            addToast({
+                type: 'error',
+                title: 'Invalid Name',
+                message: 'Username cannot be empty.'
+            });
+            return;
+        }
+        setUserName(tempUserName.trim());
+        addToast({
+            type: 'success',
+            title: 'Profile Updated',
+            message: `Your name has been updated to ${tempUserName.trim()}.`
+        });
+    };
 
     const handleSaveKey = (domain: string) => {
         const value = editingKeys[domain];
@@ -92,10 +119,44 @@ export function SettingsModal() {
         <Modal
             isOpen={isSettingsModalOpen}
             onClose={closeSettingsModal}
-            title="API Keys & Security Settings"
+            title="Dashboard Settings & Profile"
             size="lg"
         >
             <div className="p-6 overflow-y-auto max-h-[80vh] custom-scrollbar space-y-8">
+                {/* User Profile Section */}
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 border-b border-[var(--border-subtle)] pb-2">
+                        <User className="w-4 h-4 text-[var(--primary)]" />
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--text-primary)]">
+                            User Profile
+                        </h3>
+                    </div>
+
+                    <div className="bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-xl p-4 flex gap-3 items-end">
+                        <div className="flex-1">
+                            <label className="text-xs text-[var(--text-muted)] mb-1 block">Display Name</label>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    value={tempUserName}
+                                    onChange={(e) => setTempUserName(e.target.value)}
+                                    placeholder="Enter your name"
+                                    className="input w-full pr-10"
+                                />
+                                <Edit2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] opacity-50" />
+                            </div>
+                        </div>
+                        <button
+                            onClick={handleSaveUserName}
+                            disabled={tempUserName === userName || !tempUserName.trim()}
+                            className="btn btn-primary px-6 mb-[1px] disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <Save className="w-4 h-4 mr-2" />
+                            Save
+                        </button>
+                    </div>
+                </div>
+
                 {/* Header Info */}
                 <div className="bg-[var(--primary)]/10 border border-[var(--primary)]/20 rounded-xl p-4 flex gap-4">
                     <div className="w-10 h-10 rounded-full bg-[var(--primary)]/20 flex items-center justify-center shrink-0">
@@ -104,7 +165,7 @@ export function SettingsModal() {
                     <div>
                         <h4 className="text-sm font-bold text-[var(--text-primary)]">Secure Local Storage</h4>
                         <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
-                            Your API keys are stored locally in your browser. They are never sent to our servers.
+                            Your data and API keys are stored locally in your browser. They are never sent to our servers.
                         </p>
                     </div>
                 </div>
