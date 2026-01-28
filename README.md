@@ -60,7 +60,6 @@ Fin-BOARD is a premium, real-time financial dashboard designed for high-impact d
 1. **Clone & Install**:
    ```bash
    git clone https://github.com/Samx9x/Fin-BOARD.git
-   cd groww-web_intern
    npm install
    ```
 2. **Run Dev Server**:
