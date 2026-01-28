@@ -32,29 +32,29 @@ Fin-BOARD is a premium, real-time financial dashboard designed for high-impact d
 
 ## 📸 Visual Showcase
 
-| Login & Branding | Registration / Name Entry |
+| Entry | Welcome |
 | :---: | :---: |
-| ![Splash Screen](screenshots/image.png) | ![Name Setup](screenshots/image%20copy.png) |
+| ![Entry](screenshots/image.png) | ![Welcome](screenshots/image%20copy.png) |
 
-| Dashboard Overview | Live Market Table |
+| Dashboard Overview | Toggle Theme |
 | :---: | :---: |
-| ![Dashboard](screenshots/image%20copy%202.png) | ![Market Table](screenshots/image%20copy%203.png) |
+| ![Dashboard](screenshots/image%20copy%202.png) | ![Toggle Theme](screenshots/image%20copy%2011.png) |
 
-| Add Widget (Smart Search) | JSON Field Explorer |
+| Browse Templates | API key Manager |
 | :---: | :---: |
-| ![Add Widget](screenshots/image%20copy%204.png) | ![Field Explorer](screenshots/image%20copy%205.png) |
+| ![Templates](screenshots/image%20copy%204.png) | ![API key Manager](screenshots/image%20copy%205.png) |
 
-| BTC Candlestick Chart | ETH Historical Data |
+| Demo Dashboard | Clear Screen |
 | :---: | :---: |
-| ![BTC Chart](screenshots/image%20copy%206.png) | ![ETH Chart](screenshots/image%20copy%207.png) |
+| ![Demo](screenshots/image%20copy%206.png) | ![Clear Screen](screenshots/image%20copy%207.png) |
 
-| Advanced Settings | API Key Management |
+| My wallet (Static) | Analytics |
 | :---: | :---: |
-| ![Settings 1](screenshots/image%20copy%208.png) | ![Settings 2](screenshots/image%20copy%209.png) |
+| ![Wallet](screenshots/image%20copy%208.png) | ![Analytics](screenshots/image%20copy%209.png) |
 
-| Multi-Stage Greeting | Final Dashboard View |
+| Guide |  |
 | :---: | :---: |
-| ![Welcome](screenshots/image%20copy%2010.png) | ![Full Dashboard](screenshots/image%20copy%2011.png) |
+| ![Guide](screenshots/image%20copy%2010.png) |  |
 
 ## 🚀 Getting Started
 1. **Clone & Install**:
