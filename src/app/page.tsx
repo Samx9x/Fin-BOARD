@@ -8,6 +8,7 @@ import { HomeSection } from '@/components/sections/HomeSection';
 import { WalletSection } from '@/components/sections/WalletSection';
 import { AnalyticsSection } from '@/components/sections/AnalyticsSection';
 import { GuideSection } from '@/components/sections/GuideSection';
+import { SettingsSection } from '@/components/sections/SettingsSection';
 import { AddWidgetModal } from '@/components/modals/AddWidgetModal';
 import { TemplatesModal } from '@/components/modals/TemplatesModal';
 import { WelcomeModal } from '@/components/modals/WelcomeModal';
@@ -54,7 +55,7 @@ export default function Dashboard() {
       case 'guide':
         return <GuideSection />;
       case 'settings':
-        return <SettingsPlaceholder />;
+        return <SettingsSection />;
       default:
         return <HomeSection />;
     }

@@ -53,7 +53,7 @@ export function TopHeader({ userName }: TopHeaderProps) {
             </div>
 
             {/* Right Section: Theme Toggle + User Profile */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
                 {/* Theme Toggle */}
                 <motion.button
                     onClick={() => setTheme(isDark ? 'light' : 'dark')}
@@ -84,18 +84,20 @@ export function TopHeader({ userName }: TopHeaderProps) {
                     </motion.div>
                 </motion.button>
 
-                {/* User Info */}
-                <span className="text-sm text-[var(--text-primary)]">
-                    Hi {userName}!
-                </span>
-                <div className="
-          w-10 h-10 rounded-full
-          bg-gradient-to-br from-[var(--primary)] to-teal-600
-          flex items-center justify-center
-          text-white font-semibold text-sm
-          border-2 border-[var(--primary)]/30
-        ">
-                    {userName.charAt(0).toUpperCase()}
+                {/* User Info Group */}
+                <div className="flex items-center gap-3">
+                    <span className="text-lg font-medium text-[var(--text-primary)]">
+                        Hi {userName}!
+                    </span>
+                    <div className="
+                        w-12 h-12 rounded-full
+                        bg-[#00d09c]
+                        flex items-center justify-center
+                        text-white font-bold text-xl
+                        shadow-lg shadow-[#00d09c]/20
+                    ">
+                        {userName.charAt(0).toUpperCase()}
+                    </div>
                 </div>
             </div>
         </header>
