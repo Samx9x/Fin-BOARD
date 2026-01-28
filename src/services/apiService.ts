@@ -71,6 +71,20 @@ async function processDomainQueue(domain: string) {
 
 function getDomain(url: string): string {
     try {
+        // Check if URL is wrapped with CORS proxy and extract original URL
+        // Pattern 1: corsproxy.io/?{encodedUrl}
+        const corsProxyPattern = /^https?:\/\/corsproxy\.io\/\?(.+)$/;
+        // Pattern 2: api.allorigins.win/raw?url={encodedUrl}
+        const allOriginsPattern = /^https?:\/\/api\.allorigins\.win\/raw\?url=(.+)$/;
+
+        const match = url.match(corsProxyPattern) || url.match(allOriginsPattern);
+        if (match) {
+            // Decode the original URL and extract its domain
+            const originalUrl = decodeURIComponent(match[1]);
+            const hostname = new URL(originalUrl).hostname;
+            return hostname.replace('www.', '').toLowerCase();
+        }
+
         const hostname = new URL(url).hostname;
         return hostname.replace('www.', '').toLowerCase();
     } catch {
@@ -78,30 +92,87 @@ function getDomain(url: string): string {
     }
 }
 
-// Inject API key into URL
-function injectKey(url: string, domain: string): string {
-    if (typeof window === 'undefined') return url;
+
+// Get authentication config for domain (URL params or headers)
+function getAuthForDomain(url: string, domain: string): { url: string; headers: Record<string, string> } {
+    const headers: Record<string, string> = {};
+
+    if (typeof window === 'undefined') return { url, headers };
+
+    // Hardcoded provider configurations
+    const providerConfigs = [
+        { domain: 'api.coinbase.com', isFreeApi: true },
+        { domain: 'api.coincap.io', isFreeApi: true },
+        { domain: 'alphavantage.co', keyParamName: 'apikey', authMethod: 'query' as const },
+        { domain: 'finnhub.io', keyParamName: 'token', authMethod: 'query' as const },
+        { domain: 'indianapi.in', authMethod: 'header' as const, headerName: 'X-API-Key' },
+        { domain: 'api.coingecko.com', authMethod: 'header' as const, headerName: 'x-cg-demo-api-key' },
+    ];
+
     try {
         const storage = localStorage.getItem('finboard-storage');
         if (storage) {
             const state = JSON.parse(storage).state;
             const keys = state.apiKeys || {};
-            const key = keys[domain];
+            const normalizedDomain = domain.toLowerCase();
 
-            if (key) {
-                const urlObj = new URL(url);
-                if (domain === 'alphavantage.co') urlObj.searchParams.set('apikey', key);
-                else if (domain === 'finnhub.io') urlObj.searchParams.set('token', key);
-                else if (domain === 'indianapi.in') urlObj.searchParams.set('api_key', key);
-                else if (!urlObj.searchParams.has('apikey')) urlObj.searchParams.set('apikey', key);
-                return urlObj.toString();
+            // Find the provider config for this domain
+            const provider = providerConfigs.find(p =>
+                normalizedDomain.includes(p.domain) || p.domain.includes(normalizedDomain)
+            );
+
+            console.log('[API Auth]', { url, domain: normalizedDomain, provider: provider?.domain });
+
+            // If it's a free API, return as is (no auth needed)
+            if (provider?.isFreeApi) {
+                return { url, headers };
+            }
+
+            // Get key using provider domain
+            const key = provider ? keys[provider.domain] : null;
+
+            if (key && provider) {
+                // Check if the URL is already wrapped with a proxy
+                const proxyPatterns = [
+                    /^https?:\/\/corsproxy\.io\/\?(.+)$/,
+                    /^https?:\/\/api\.allorigins\.win\/raw\?url=(.+)$/
+                ];
+
+                let targetUrl = url;
+                let proxyPrefix = '';
+                let isProxied = false;
+
+                for (const pattern of proxyPatterns) {
+                    const match = url.match(pattern);
+                    if (match) {
+                        isProxied = true;
+                        targetUrl = decodeURIComponent(match[1]);
+                        proxyPrefix = url.substring(0, url.indexOf(match[1]));
+                        break;
+                    }
+                }
+
+                if (provider.authMethod === 'header') {
+                    headers[provider.headerName || 'X-API-Key'] = key;
+                } else {
+                    const urlObj = new URL(targetUrl);
+                    const paramName = provider.keyParamName || 'apikey';
+                    urlObj.searchParams.set(paramName, key);
+                    targetUrl = urlObj.toString();
+                }
+
+                // Re-wrap with proxy if it was originally proxied
+                const finalUrl = isProxied ? `${proxyPrefix}${encodeURIComponent(targetUrl)}` : targetUrl;
+                return { url: finalUrl, headers };
             }
         }
     } catch (e) {
-        console.error('Key injection failed:', e);
+        console.error('Auth config failed:', e);
     }
-    return url;
+    return { url, headers };
 }
+
+
 
 // Recursively extract all fields from JSON
 export function extractFields(data: unknown, prefix = ''): ApiField[] {
@@ -155,12 +226,12 @@ export function getValueByPath(data: unknown, path: string): unknown {
 // Test API connection
 export async function testApiConnection(url: string): Promise<ApiTestResult> {
     const domain = getDomain(url);
-    const finalUrl = injectKey(url, domain);
+    const auth = getAuthForDomain(url, domain);
 
     try {
-        const response = await fetch(finalUrl, {
+        const response = await fetch(auth.url, {
             method: 'GET',
-            headers: { 'Accept': 'application/json' },
+            headers: auth.headers,
         });
 
         if (response.status === 429) {
@@ -217,10 +288,10 @@ export async function fetchApiData(url: string, forceRefresh = false): Promise<{
         }
         domainQueues[domain].queue.push(async () => {
             try {
-                const finalUrl = injectKey(url, domain);
-                const response = await fetch(finalUrl, {
+                const auth = getAuthForDomain(url, domain);
+                const response = await fetch(auth.url, {
                     method: 'GET',
-                    headers: { 'Accept': 'application/json' },
+                    headers: auth.headers,
                 });
                 if (response.status === 429) {
                     resolve({ success: false, error: `Rate limit exceeded for ${domain}` });
@@ -243,13 +314,37 @@ export async function fetchApiData(url: string, forceRefresh = false): Promise<{
 }
 
 // Format value based on type
-export function formatValue(value: unknown, format?: 'currency' | 'percentage' | 'number' | 'text'): string {
+// currencyHint can be the field label or any text that might contain currency info
+export function formatValue(value: unknown, format?: 'currency' | 'percentage' | 'number' | 'text', currencyHint?: string): string {
     if (value === null || value === undefined) return '-';
     switch (format) {
         case 'currency':
             const num = parseFloat(String(value));
             if (isNaN(num)) return String(value);
-            return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(num);
+
+            // Detect currency from hint (field label, etc.)
+            const hint = (currencyHint || '').toLowerCase();
+            let symbol = '$'; // Default to USD
+            let locale = 'en-US';
+
+            if (hint.includes('inr') || hint.includes('rupee') || hint.includes('india')) {
+                symbol = '₹';
+                locale = 'en-IN';
+            } else if (hint.includes('eur') || hint.includes('euro')) {
+                symbol = '€';
+                locale = 'de-DE';
+            } else if (hint.includes('gbp') || hint.includes('pound') || hint.includes('sterling')) {
+                symbol = '£';
+                locale = 'en-GB';
+            } else if (hint.includes('eth') || hint.includes('ethereum')) {
+                // For crypto, just use number format with symbol
+                return `Ξ${new Intl.NumberFormat('en-US', { maximumFractionDigits: 6 }).format(num)}`;
+            } else if (hint.includes('btc') || hint.includes('bitcoin')) {
+                return `₿${new Intl.NumberFormat('en-US', { maximumFractionDigits: 8 }).format(num)}`;
+            }
+
+            // Format with detected symbol
+            return `${symbol}${new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(num)}`;
         case 'percentage':
             const pct = parseFloat(String(value));
             if (isNaN(pct)) return String(value);
@@ -257,7 +352,7 @@ export function formatValue(value: unknown, format?: 'currency' | 'percentage' |
         case 'number':
             const n = parseFloat(String(value));
             if (isNaN(n)) return String(value);
-            return new Intl.NumberFormat('en-IN').format(n);
+            return new Intl.NumberFormat('en-US').format(n);
         default:
             return String(value);
     }

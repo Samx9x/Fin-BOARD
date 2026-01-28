@@ -207,19 +207,30 @@ export function SettingsModal() {
                                 ? editingKeys[provider.domain]
                                 : (apiKeys[provider.domain] || '');
                             const isCustom = provider.id.startsWith('custom-');
+                            const isFree = provider.isFreeApi;
 
                             return (
                                 <div
                                     key={provider.id}
-                                    className="bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-xl p-4 transition-all hover:border-[var(--primary)]/30"
+                                    className={`bg-[var(--bg-elevated)] border rounded-xl p-4 transition-all hover:border-[var(--primary)]/30 ${isFree ? 'border-[var(--success)]/30' : 'border-[var(--border-subtle)]'}`}
                                 >
                                     <div className="flex justify-between items-start mb-4">
                                         <div>
                                             <div className="flex items-center gap-2">
                                                 <h5 className="font-bold text-[var(--text-primary)]">{provider.name}</h5>
+                                                {isFree && (
+                                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--success)]/20 text-[var(--success)] font-bold">
+                                                        FREE
+                                                    </span>
+                                                )}
                                                 {isCustom && (
                                                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 font-medium">
                                                         Custom
+                                                    </span>
+                                                )}
+                                                {provider.authMethod === 'header' && !isFree && (
+                                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 font-medium">
+                                                        Header Auth
                                                     </span>
                                                 )}
                                             </div>
@@ -229,7 +240,7 @@ export function SettingsModal() {
                                             </p>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            {provider.getKeyUrl && (
+                                            {provider.getKeyUrl && !isFree && (
                                                 <a
                                                     href={provider.getKeyUrl}
                                                     target="_blank"
@@ -254,38 +265,46 @@ export function SettingsModal() {
                                         </div>
                                     </div>
 
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <input
-                                                type="password"
-                                                value={currentValue}
-                                                onChange={(e) => setEditingKeys({ ...editingKeys, [provider.domain]: e.target.value })}
-                                                placeholder={`Enter your ${provider.name} API key`}
-                                                className="input w-full pr-10"
-                                            />
-                                            {isStored && !editingKeys[provider.domain] && (
-                                                <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--success)]" />
-                                            )}
+                                    {isFree ? (
+                                        <div className="bg-[var(--success)]/10 border border-[var(--success)]/20 rounded-lg px-4 py-3 text-sm text-[var(--success)] flex items-center gap-2">
+                                            <CheckCircle2 className="w-4 h-4 shrink-0" />
+                                            <span>No API key required - Public endpoints available</span>
                                         </div>
-                                        <button
-                                            onClick={() => handleSaveKey(provider.domain)}
-                                            className="btn btn-primary px-4 shadow-none shrink-0"
-                                            disabled={currentValue === (apiKeys[provider.domain] || '')}
-                                        >
-                                            <Save className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => handleClearKey(provider.domain)}
-                                            className="btn btn-ghost px-4 text-[var(--error)] hover:bg-[var(--error-subtle)] shrink-0"
-                                            disabled={!isStored}
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
+                                    ) : (
+                                        <div className="flex gap-2">
+                                            <div className="relative flex-1">
+                                                <input
+                                                    type="password"
+                                                    value={currentValue}
+                                                    onChange={(e) => setEditingKeys({ ...editingKeys, [provider.domain]: e.target.value })}
+                                                    placeholder={`Enter your ${provider.name} API key`}
+                                                    className="input w-full pr-10"
+                                                />
+                                                {isStored && !editingKeys[provider.domain] && (
+                                                    <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--success)]" />
+                                                )}
+                                            </div>
+                                            <button
+                                                onClick={() => handleSaveKey(provider.domain)}
+                                                className="btn btn-primary px-4 shadow-none shrink-0"
+                                                disabled={currentValue === (apiKeys[provider.domain] || '')}
+                                            >
+                                                <Save className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleClearKey(provider.domain)}
+                                                className="btn btn-ghost px-4 text-[var(--error)] hover:bg-[var(--error-subtle)] shrink-0"
+                                                disabled={!isStored}
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
                     </div>
+
                 </div>
 
                 {/* Info Section */}

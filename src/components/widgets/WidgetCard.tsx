@@ -76,7 +76,7 @@ export function WidgetCard({ widget }: WidgetCardProps) {
     const getDisplayValue = (field: SelectedField) => {
         if (!data) return '-';
         const value = getValueByPath(data, field.path);
-        return formatValue(value, field.format);
+        return formatValue(value, field.format, field.label);
     };
 
     return (

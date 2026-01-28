@@ -10,6 +10,8 @@ import { AnalyticsSection } from '@/components/sections/AnalyticsSection';
 import { GuideSection } from '@/components/sections/GuideSection';
 import { AddWidgetModal } from '@/components/modals/AddWidgetModal';
 import { TemplatesModal } from '@/components/modals/TemplatesModal';
+import { WelcomeModal } from '@/components/modals/WelcomeModal';
+import { ClearConfirmModal } from '@/components/modals/ClearConfirmModal';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { AnimatePresence } from 'framer-motion';
 import { ToastContainer } from '@/components/ui/Toast';
@@ -17,11 +19,13 @@ import { ToastContainer } from '@/components/ui/Toast';
 export default function Dashboard() {
   const {
     theme,
+    userName,
     addWidget
   } = useDashboardStore();
 
   const [activeSection, setActiveSection] = useState('home');
   const [isLoading, setIsLoading] = useState(true);
+  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
 
   // Initial loading delay
   useEffect(() => {
@@ -62,14 +66,21 @@ export default function Dashboard() {
         {isLoading && <LoadingScreen key="loader" />}
       </AnimatePresence>
 
+      {/* Welcome Modal - shows before user enters name or briefly on return */}
+      {!isLoading && <WelcomeModal />}
+
       <div className="min-h-screen flex bg-[var(--bg-base)]">
         {/* Sidebar */}
-        <Sidebar activeSection={activeSection} onSectionChange={setActiveSection} />
+        <Sidebar
+          activeSection={activeSection}
+          onSectionChange={setActiveSection}
+          onClearAll={() => setIsClearModalOpen(true)}
+        />
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col ml-[120px]">
-          {/* Top Header */}
-          <TopHeader userName="SHRIANSH" />
+          {/* Top Header with dynamic user name */}
+          <TopHeader userName={userName || 'User'} />
 
           {/* Section Content with proper margins */}
           <div className="flex-1 overflow-auto px-[50px] py-[50px]">
@@ -80,6 +91,10 @@ export default function Dashboard() {
         {/* Modals */}
         <AddWidgetModal />
         <TemplatesModal />
+        <ClearConfirmModal
+          isOpen={isClearModalOpen}
+          onClose={() => setIsClearModalOpen(false)}
+        />
         <ToastContainer />
       </div>
     </>

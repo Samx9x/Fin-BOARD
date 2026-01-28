@@ -68,8 +68,13 @@ export interface ApiProvider {
         delay: number;
     };
     keyParamName?: string; // e.g., 'apikey', 'token', 'api_key'
+    authMethod?: 'query' | 'header'; // How to pass the API key
+    headerName?: string; // Custom header name for header auth (e.g., 'X-API-Key')
     getKeyUrl?: string;
+    isFreeApi?: boolean; // APIs that don't require authentication
+    defaultEndpoint?: string; // Default endpoint to use when selected
 }
+
 
 // Dashboard State
 export interface DashboardState {

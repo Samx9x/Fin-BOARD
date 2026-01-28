@@ -2,12 +2,13 @@
 
 import { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { RefreshCw, Settings, Trash2, GripVertical, AlertCircle, TrendingUp, TrendingDown, BarChart as BarChartIcon } from 'lucide-react';
+import { RefreshCw, Settings, Trash2, GripVertical, AlertCircle, TrendingUp, TrendingDown, BarChart as BarChartIcon, Database } from 'lucide-react';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Widget } from '@/types';
 import { useDashboardStore } from '@/store/dashboardStore';
 import { useWidgetData } from '@/hooks/useWidgetData';
 import { getValueByPath, formatValue } from '@/services/apiService';
+import { parseHistoricalData, OHLCDataPoint } from '@/services/historicalDataService';
 
 interface WidgetChartProps {
     widget: Widget;
@@ -24,8 +25,32 @@ interface ChartPoint {
     low?: number;
 }
 
+// Seeded pseudo-random number generator for consistent chart data
+// Uses a simple hash function to generate stable "random" values from a seed
+function seededRandom(seed: string): number {
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+        const char = seed.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    // Normalize to 0-1 range
+    return Math.abs(Math.sin(hash) * 10000) % 1;
+}
+
+// Generate multiple seeded random values for OHLC data
+function seededRandomValues(seed: string, count: number): number[] {
+    const values: number[] = [];
+    for (let i = 0; i < count; i++) {
+        values.push(seededRandom(seed + '_' + i));
+    }
+    return values;
+}
+
+
 // Generate simulated historical data from a single current value
-function generateHistoricalData(currentValue: number, interval: IntervalType, isCandlestick: boolean = false): ChartPoint[] {
+// Uses seeded random for consistent data across refreshes
+function generateHistoricalData(currentValue: number, interval: IntervalType, isCandlestick: boolean = false, widgetId: string = ''): ChartPoint[] {
     const data: ChartPoint[] = [];
     const now = new Date();
 
@@ -56,22 +81,27 @@ function generateHistoricalData(currentValue: number, interval: IntervalType, is
 
     for (let i = points - 1; i >= 0; i--) {
         const date = new Date(now.getTime() - getOffset(i));
+        const label = getLabel(date);
+        // Create a seed from the date label, interval, and widget ID for consistency
+        const seed = `${widgetId}_${interval}_${label}_${Math.floor(now.getTime() / 86400000)}`; // Changes daily
+
         // Create a somewhat realistic trend that ends at current value
         const progress = (points - 1 - i) / (points - 1); // 0 to 1
-        const randomWalk = (Math.random() - 0.5) * variance;
+        const randomWalk = (seededRandom(seed) - 0.5) * variance;
         const trendValue = currentValue - variance * 0.5 + (variance * 0.5 * progress) + randomWalk;
 
         const baseValue = Math.max(0, i === 0 ? currentValue : trendValue);
 
         if (isCandlestick) {
+            const randoms = seededRandomValues(seed, 4);
             const spread = baseValue * 0.05; // 5% spread for OHLC
-            const open = baseValue + (Math.random() - 0.5) * spread;
-            const close = i === 0 ? currentValue : baseValue + (Math.random() - 0.5) * spread;
-            const high = Math.max(open, close) + Math.random() * (spread * 0.5);
-            const low = Math.max(0, Math.min(open, close) - Math.random() * (spread * 0.5));
+            const open = baseValue + (randoms[0] - 0.5) * spread;
+            const close = i === 0 ? currentValue : baseValue + (randoms[1] - 0.5) * spread;
+            const high = Math.max(open, close) + randoms[2] * (spread * 0.5);
+            const low = Math.max(0, Math.min(open, close) - randoms[3] * (spread * 0.5));
 
             data.push({
-                name: getLabel(date),
+                name: label,
                 value: close,
                 open,
                 close,
@@ -80,7 +110,7 @@ function generateHistoricalData(currentValue: number, interval: IntervalType, is
             });
         } else {
             data.push({
-                name: getLabel(date),
+                name: label,
                 value: baseValue,
             });
         }
@@ -88,6 +118,7 @@ function generateHistoricalData(currentValue: number, interval: IntervalType, is
 
     return data;
 }
+
 
 export function WidgetChart({ widget }: WidgetChartProps) {
     const { removeWidget, openAddWidgetModal, setEditingWidget, updateWidget } = useDashboardStore();
@@ -97,6 +128,12 @@ export function WidgetChart({ widget }: WidgetChartProps) {
 
     const [isEditingName, setIsEditingName] = useState(false);
     const [editedName, setEditedName] = useState(widget.name);
+    const [needsRefresh, setNeedsRefresh] = useState(false);
+
+    // Reset needsRefresh when data is loading (starting a refresh)
+    useEffect(() => {
+        if (isLoading) setNeedsRefresh(false);
+    }, [isLoading]);
 
     const handleNameSave = () => {
         if (editedName.trim() && editedName !== widget.name) {
@@ -130,6 +167,25 @@ export function WidgetChart({ widget }: WidgetChartProps) {
     useEffect(() => {
         if (!data) {
             setChartData([]);
+            return;
+        }
+
+        // PRIORITY 1: Check for real historical OHLC data (CoinGecko, Alpha Vantage)
+        const realHistoricalData = parseHistoricalData(data);
+        if (realHistoricalData && realHistoricalData.length > 0) {
+            console.log('[Chart] Using REAL historical OHLC data:', realHistoricalData.length, 'points');
+            // Convert to chart format with OHLC fields
+            const chartPoints = realHistoricalData.map(point => ({
+                name: point.name,
+                value: point.close,
+                open: point.open,
+                high: point.high,
+                low: point.low,
+                close: point.close,
+                // Add primary field label for standard charts
+                ...(widget.selectedFields[0] ? { [widget.selectedFields[0].label || 'Price']: point.close } : { Price: point.close }),
+            }));
+            setChartData(chartPoints);
             return;
         }
 
@@ -195,25 +251,31 @@ export function WidgetChart({ widget }: WidgetChartProps) {
 
             for (let i = points - 1; i >= 0; i--) {
                 const date = new Date(now.getTime() - getOffset(i));
-                const point: any = { name: getLabel(date) };
+                const label = getLabel(date);
+                const point: any = { name: label };
 
-                numericFields.forEach(f => {
+                // Create seed for consistent data
+                const baseSeed = `${widget.id}_${interval}_${label}_${Math.floor(now.getTime() / 86400000)}`;
+
+                numericFields.forEach((f, fieldIndex) => {
                     const rawValue = getValueByPath(data, f.path);
                     const currentVal = rawValue != null ? Number(rawValue) : 0;
                     const safeCurrentVal = isNaN(currentVal) ? 0 : currentVal;
 
                     const variance = safeCurrentVal * 0.1;
                     const progress = (points - 1 - i) / (points - 1);
-                    const randomWalk = (Math.random() - 0.5) * variance;
+                    const seed = `${baseSeed}_${fieldIndex}`;
+                    const randomWalk = (seededRandom(seed) - 0.5) * variance;
                     const val = safeCurrentVal - variance * 0.5 + (variance * 0.5 * progress) + randomWalk;
 
                     point[f.label] = Math.max(0, i === 0 ? safeCurrentVal : val);
 
                     if (isCandlestick && numericFields.length === 1) {
+                        const randoms = seededRandomValues(seed + '_ohlc', 4);
                         const spread = point[f.label] * 0.05;
-                        point.open = point[f.label] + (Math.random() - 0.5) * spread;
-                        point.high = Math.max(point.open, point[f.label]) + Math.random() * (spread * 0.5);
-                        point.low = Math.max(0, Math.min(point.open, point[f.label]) - Math.random() * (spread * 0.5));
+                        point.open = point[f.label] + (randoms[0] - 0.5) * spread;
+                        point.high = Math.max(point.open, point[f.label]) + randoms[1] * (spread * 0.5);
+                        point.low = Math.max(0, Math.min(point.open, point[f.label]) - randoms[2] * (spread * 0.5));
                         point.close = i === 0 ? safeCurrentVal : point[f.label];
                     }
                 });
@@ -269,8 +331,52 @@ export function WidgetChart({ widget }: WidgetChartProps) {
         if (!data || numericFields.length === 0) return null;
         const field = numericFields[0];
         const value = getValueByPath(data, field.path);
-        return formatValue(value, field.format);
+        return formatValue(value, field.format, field.label);
     }, [data, numericFields]);
+
+    const handleIntervalChange = (newInterval: IntervalType) => {
+        setInterval(newInterval);
+
+        const updates: any = {
+            chartConfig: {
+                ...widget.chartConfig,
+                interval: newInterval,
+            }
+        };
+
+        // Auto-detect CoinGecko pattern for real OHLC data
+        if (widget.apiUrl.includes('api.coingecko.com') && widget.apiUrl.includes('/ohlc')) {
+            let days = '1';
+            if (newInterval === 'weekly') days = '7';
+            if (newInterval === 'monthly') days = '30';
+
+            try {
+                // If it's a proxied URL, we need to handle it differently
+                if (widget.apiUrl.includes('allorigins') || widget.apiUrl.includes('corsproxy')) {
+                    const url = new URL(widget.apiUrl);
+                    const encodedUrl = url.searchParams.get('url');
+                    if (encodedUrl) {
+                        const targetUrl = new URL(encodedUrl);
+                        targetUrl.searchParams.set('days', days);
+                        url.searchParams.set('url', targetUrl.toString());
+                        updates.apiUrl = url.toString();
+                    }
+                } else {
+                    const url = new URL(widget.apiUrl);
+                    url.searchParams.set('days', days);
+                    updates.apiUrl = url.toString();
+                }
+            } catch (e) {
+                // Simple fallback if URL parsing fails
+                if (widget.apiUrl.includes('days=')) {
+                    updates.apiUrl = widget.apiUrl.replace(/days=\d+/, `days=${days}`);
+                }
+            }
+        }
+
+        updateWidget(widget.id, updates);
+        setNeedsRefresh(true);
+    };
 
     const chartType = widget.chartConfig?.type || 'area';
     const chartColors = ['var(--primary)', '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b'];
@@ -326,8 +432,8 @@ export function WidgetChart({ widget }: WidgetChartProps) {
                     <div className="flex items-center gap-1">
                         <motion.button
                             onClick={refresh}
-                            className="widget-action p-1.5"
-                            title="Refresh"
+                            className={`widget-action p-1.5 ${needsRefresh ? 'text-[var(--primary)] animate-pulse shadow-[0_0_10px_rgba(0,208,156,0.5)]' : ''}`}
+                            title={needsRefresh ? "Refresh to apply interval change" : "Refresh"}
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9, rotate: 180 }}
                             disabled={isLoading}
@@ -372,22 +478,35 @@ export function WidgetChart({ widget }: WidgetChartProps) {
                 )}
 
                 {/* Interval Selector */}
-                <div className="flex items-center gap-1 px-3 py-2 border-b border-[var(--border-subtle)]">
-                    {(['daily', 'weekly', 'monthly'] as IntervalType[]).map((int) => (
-                        <button
-                            key={int}
-                            onClick={() => setInterval(int)}
-                            className={`
-                px-3 py-1 text-xs rounded-md transition-all
-                ${interval === int
-                                    ? 'bg-[var(--primary)] text-black font-medium'
-                                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
-                                }
-              `}
+                <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border-subtle)]">
+                    <div className="flex items-center gap-1">
+                        {(['daily', 'weekly', 'monthly'] as IntervalType[]).map((int) => (
+                            <button
+                                key={int}
+                                onClick={() => handleIntervalChange(int)}
+                                className={`
+                    px-3 py-1 text-xs rounded-md transition-all
+                    ${interval === int
+                                        ? 'bg-[var(--primary)] text-black font-medium'
+                                        : 'text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
+                                    }
+                  `}
+                            >
+                                {int.charAt(0).toUpperCase() + int.slice(1)}
+                            </button>
+                        ))}
+                    </div>
+
+                    {needsRefresh && (
+                        <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="flex items-center gap-1.5 text-[var(--primary)]"
                         >
-                            {int.charAt(0).toUpperCase() + int.slice(1)}
-                        </button>
-                    ))}
+                            <RefreshCw className="w-3 h-3 animate-spin-slow" />
+                            <span className="text-[10px] font-bold uppercase tracking-wider">Refresh Required</span>
+                        </motion.div>
+                    )}
                 </div>
 
                 {/* Chart Main Area */}
@@ -437,6 +556,7 @@ export function WidgetChart({ widget }: WidgetChartProps) {
                                         interval="preserveStartEnd"
                                     />
                                     <YAxis
+                                        domain={['auto', 'auto']}
                                         tick={{ fontSize: 9, fill: 'var(--text-muted)' }}
                                         axisLine={false}
                                         tickLine={false}
@@ -450,7 +570,7 @@ export function WidgetChart({ widget }: WidgetChartProps) {
                                             borderRadius: '8px',
                                             fontSize: '12px',
                                         }}
-                                        formatter={(value: any, name: any) => [`$${Number(value).toLocaleString()}`, name]}
+                                        formatter={(value: any, name: any) => [formatValue(value, 'currency', String(name)), name]}
                                     />
                                     {numericFields.map((field, idx) => (
                                         <Line
@@ -492,14 +612,16 @@ export function WidgetChart({ widget }: WidgetChartProps) {
                                         content={({ active, payload }) => {
                                             if (active && payload && payload.length) {
                                                 const d = payload[0].payload;
+                                                const primaryField = numericFields[0];
+                                                const label = primaryField?.label || '';
                                                 return (
                                                     <div className="bg-[var(--bg-elevated)] border border-[var(--border-default)] p-2 rounded-lg text-[10px] space-y-1">
                                                         <p className="font-bold border-b border-[var(--border-subtle)] pb-1 mb-1">{d.name}</p>
                                                         <div className="grid grid-cols-2 gap-x-4">
-                                                            <span className="text-[var(--text-muted)]">Open:</span> <span className="text-right">${d.open?.toFixed(2)}</span>
-                                                            <span className="text-[var(--text-muted)]">High:</span> <span className="text-right text-[var(--success)]">${d.high?.toFixed(2)}</span>
-                                                            <span className="text-[var(--text-muted)]">Low:</span> <span className="text-right text-[var(--error)]">${d.low?.toFixed(2)}</span>
-                                                            <span className="text-[var(--text-muted)]">Close:</span> <span className="text-right font-bold">${d.close?.toFixed(2)}</span>
+                                                            <span className="text-[var(--text-muted)]">Open:</span> <span className="text-right">{formatValue(d.open, 'currency', label)}</span>
+                                                            <span className="text-[var(--text-muted)]">High:</span> <span className="text-right text-[var(--success)]">{formatValue(d.high, 'currency', label)}</span>
+                                                            <span className="text-[var(--text-muted)]">Low:</span> <span className="text-right text-[var(--error)]">{formatValue(d.low, 'currency', label)}</span>
+                                                            <span className="text-[var(--text-muted)]">Close:</span> <span className="text-right font-bold">{formatValue(d.close, 'currency', label)}</span>
                                                         </div>
                                                     </div>
                                                 );
@@ -546,6 +668,7 @@ export function WidgetChart({ widget }: WidgetChartProps) {
                                         interval="preserveStartEnd"
                                     />
                                     <YAxis
+                                        domain={['auto', 'auto']}
                                         tick={{ fontSize: 9, fill: 'var(--text-muted)' }}
                                         axisLine={false}
                                         tickLine={false}
@@ -559,7 +682,7 @@ export function WidgetChart({ widget }: WidgetChartProps) {
                                             borderRadius: '8px',
                                             fontSize: '12px',
                                         }}
-                                        formatter={(value: any, name: any) => [`$${Number(value).toLocaleString()}`, name]}
+                                        formatter={(value: any, name: any) => [formatValue(value, 'currency', String(name)), name]}
                                     />
                                     {numericFields.map((field, idx) => (
                                         <Area

@@ -47,29 +47,45 @@ const widgetTemplates: WidgetTemplate[] = [
         id: 'crypto-market',
         name: 'Crypto Market Overview',
         icon: '📊',
-        description: 'Top 10 cryptocurrencies status table',
+        description: 'Top 25 cryptocurrencies by market cap (via CoinGecko)',
         displayMode: 'table',
-        apiUrl: 'https://api.coincap.io/v2/assets?limit=10',
+        apiUrl: 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=25&page=1&sparkline=false',
         fields: [
             { path: 'name', label: 'Name', format: 'text' },
             { path: 'symbol', label: 'Symbol', format: 'text' },
-            { path: 'priceUsd', label: 'Price (USD)', format: 'currency' },
-            { path: 'changePercent24Hr', label: '24h Change', format: 'percentage' }
+            { path: 'current_price', label: 'Price (USD)', format: 'currency' },
+            { path: 'price_change_percentage_24h', label: '24h Change', format: 'percentage' },
+            { path: 'market_cap', label: 'Market Cap', format: 'currency' }
         ]
     },
     {
         id: 'btc-candlestick',
-        name: 'Bitcoin Candlestick',
-        icon: '🕯️',
-        description: 'Live BTC candlestick analysis chart',
+        name: 'Bitcoin OHLC (Real Data)',
+        icon: '📊',
+        description: '7-day real OHLC candlestick chart from CoinGecko',
         displayMode: 'chart',
-        apiUrl: 'https://api.coinbase.com/v2/prices/BTC-USD/spot',
+        apiUrl: 'https://api.coingecko.com/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=7',
         fields: [
-            { path: 'data.amount', label: 'Price', format: 'currency' }
+            { path: '[0][4]', label: 'Price', format: 'currency' }
         ],
         chartConfig: {
             type: 'candlestick',
-            interval: 'daily'
+            interval: 'weekly'
+        }
+    },
+    {
+        id: 'eth-ohlc',
+        name: 'Ethereum OHLC (Real Data)',
+        icon: '📈',
+        description: '30-day real OHLC from CoinGecko',
+        displayMode: 'chart',
+        apiUrl: 'https://api.coingecko.com/api/v3/coins/ethereum/ohlc?vs_currency=usd&days=30',
+        fields: [
+            { path: '[0][4]', label: 'Price', format: 'currency' }
+        ],
+        chartConfig: {
+            type: 'candlestick',
+            interval: 'monthly'
         }
     },
     {

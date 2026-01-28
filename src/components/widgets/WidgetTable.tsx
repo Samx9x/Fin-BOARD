@@ -297,7 +297,7 @@ export function WidgetTable({ widget }: WidgetTableProps) {
                                     >
                                         {columns.map((col) => (
                                             <td key={col.key}>
-                                                {formatValue(getValueByPath(row, col.path), col.format)}
+                                                {formatValue(getValueByPath(row, col.path), col.format, col.label)}
                                             </td>
                                         ))}
                                     </motion.tr>

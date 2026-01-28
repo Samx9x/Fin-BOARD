@@ -58,22 +58,24 @@ export function LoadingScreen() {
                 />
             </motion.div>
 
-            {/* Welcome Text Section */}
+            {/* Welcome Text Section - Only show if returning user with a name */}
             <div className="relative z-10 h-10 overflow-hidden">
-                <motion.h1
-                    initial={{ scale: 0.5, opacity: 0 }}
-                    animate={isZooming
-                        ? { scale: 1.5, opacity: 0 }
-                        : { scale: 0.8, opacity: 1 }
-                    }
-                    transition={{
-                        duration: isZooming ? 0.8 : 1.5,
-                        ease: "easeOut"
-                    }}
-                    className="text-4xl font-black text-[var(--text-primary)] tracking-tight uppercase"
-                >
-                    Welcome back <span className="text-[var(--primary)]">SHRIANSH</span>
-                </motion.h1>
+                {!useDashboardStore.getState().isFirstVisit && useDashboardStore.getState().userName && (
+                    <motion.h1
+                        initial={{ scale: 0.5, opacity: 0 }}
+                        animate={isZooming
+                            ? { scale: 1.5, opacity: 0 }
+                            : { scale: 0.8, opacity: 1 }
+                        }
+                        transition={{
+                            duration: isZooming ? 0.8 : 1.5,
+                            ease: "easeOut"
+                        }}
+                        className="text-4xl font-black text-[var(--text-primary)] tracking-tight uppercase"
+                    >
+                        Welcome back <span className="text-[var(--primary)]">{useDashboardStore.getState().userName}</span>
+                    </motion.h1>
+                )}
             </div>
 
             {/* Loading Bar */}

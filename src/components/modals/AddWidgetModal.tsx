@@ -1,17 +1,19 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Search, Plus, X, CheckCircle, AlertCircle, Loader2,
     LayoutGrid, Table, LineChart as ChartIcon, ArrowLeft, ArrowRight, Bitcoin,
-    RefreshCw, Zap, TrendingUp, Heart
+    RefreshCw, Zap, TrendingUp, Heart, History, Shield
 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { useDashboardStore } from '@/store/dashboardStore';
 import { testApiConnection } from '@/services/apiService';
 import { Widget, WidgetDisplayMode, SelectedField, ApiField } from '@/types';
 import { JsonExplorer } from '@/components/ui/JsonExplorer';
+import { API_ENDPOINT_SUGGESTIONS, getEndpointSuggestions, wrapWithCorsProxy, ApiEndpoint } from '@/data/apiEndpoints';
+
 
 type Step = 'config' | 'fields';
 
@@ -90,6 +92,16 @@ export function AddWidgetModal() {
     const [chartType, setChartType] = useState<'line' | 'area' | 'candlestick'>('area');
     const [explorerMode, setExplorerMode] = useState<'fields' | 'json'>('fields');
 
+    // URL Autocomplete state
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [highlightedIndex, setHighlightedIndex] = useState(-1);
+    const urlInputRef = useRef<HTMLInputElement>(null);
+    const suggestionsRef = useRef<HTMLDivElement>(null);
+
+    // Get store values
+    const { urlHistory, useCorsProxy, addUrlToHistory, toggleCorsProxy } = useDashboardStore();
+
+
     // Reset form when modal opens/closes
     useEffect(() => {
         if (isAddWidgetModalOpen) {
@@ -144,6 +156,36 @@ export function AddWidgetModal() {
         return fields.filter(f => f.type !== 'object');
     }, [availableFields, fieldSearch, showArraysOnly]);
 
+    // Compute URL suggestions (history + preset endpoints)
+    const urlSuggestions = useMemo(() => {
+        const term = apiUrl.toLowerCase();
+        const results: Array<{ url: string; label: string; description: string; isHistory?: boolean; category?: string }> = [];
+
+        // Add history URLs that match (at the top, marked)
+        urlHistory.forEach(url => {
+            if (!term || url.toLowerCase().includes(term)) {
+                results.push({
+                    url,
+                    label: url.split('/').slice(-2).join('/') || url,
+                    description: 'Previously used',
+                    isHistory: true
+                });
+            }
+        });
+
+        // Add preset suggestions that match
+        const presetSuggestions = getEndpointSuggestions(undefined, term);
+        presetSuggestions.forEach(s => {
+            // Don't duplicate history items
+            if (!urlHistory.includes(s.url)) {
+                results.push(s);
+            }
+        });
+
+        return results.slice(0, 15); // Limit to 15 suggestions
+    }, [apiUrl, urlHistory]);
+
+
     const handleTestApi = async (url?: string) => {
         const testUrl = url || apiUrl;
         if (!testUrl) return;
@@ -151,7 +193,9 @@ export function AddWidgetModal() {
         setIsTesting(true);
         setTestResult(null);
 
-        const result = await testApiConnection(testUrl);
+        // Use CORS proxy if enabled
+        const finalUrl = useCorsProxy ? wrapWithCorsProxy(testUrl) : testUrl;
+        const result = await testApiConnection(finalUrl);
 
         setIsTesting(false);
         setTestResult({
@@ -163,8 +207,11 @@ export function AddWidgetModal() {
         if (result.success) {
             setAvailableFields(result.fields);
             setApiData(result.data);
+            // Save to history (original URL, not proxied)
+            addUrlToHistory(testUrl);
         }
     };
+
 
     const handleAddField = (field: ApiField) => {
         if (selectedFields.some(f => f.path === field.path)) return;
@@ -281,8 +328,11 @@ export function AddWidgetModal() {
                             const provider = useDashboardStore.getState().apiProviders.find(p => p.id === e.target.value);
                             if (provider) {
                                 setName(provider.name);
-                                // Leave the URL empty so user can complete it with their specific endpoint
-                                setApiUrl(`https://${provider.domain}/`);
+                                // Use default endpoint if available, otherwise construct base URL
+                                const url = provider.defaultEndpoint || `https://${provider.domain}/`;
+                                setApiUrl(url);
+                                // Auto-test the API for convenience
+                                handleTestApi(url);
                             }
                         }}
                         className="input bg-[var(--bg-elevated)] border-[var(--border-default)] text-[var(--text-primary)]"
@@ -291,34 +341,136 @@ export function AddWidgetModal() {
                         <option value="" disabled className="bg-[var(--bg-surface)]">Select a configured API provider...</option>
                         {useDashboardStore.getState().apiProviders.map(provider => {
                             const hasKey = !!useDashboardStore.getState().apiKeys[provider.domain];
+                            const isFree = provider.isFreeApi;
                             return (
                                 <option key={provider.id} value={provider.id} className="bg-[var(--bg-surface)]">
-                                    {provider.name} {hasKey ? '✓' : '(⚠ No Key)'} - {provider.domain}
+                                    {provider.name} {isFree ? '★ FREE' : (hasKey ? '✓' : '⚠ No Key')} - {provider.domain}
                                 </option>
                             );
                         })}
                     </select>
                     <p className="text-xs text-[var(--text-muted)] mt-1">
-                        Select a provider or enter a custom URL below. ✓ indicates a saved API key.
+                        Select a provider or enter a custom URL below. ✓ = Key saved, ★ FREE = No key needed
                     </p>
                 </div>
 
-                {/* API URL */}
-                <div>
-                    <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-1.5">
-                        API URL
-                    </label>
+
+                {/* API URL with Autocomplete */}
+                <div className="relative">
+                    <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-sm font-semibold text-[var(--text-secondary)]">
+                            API URL
+                        </label>
+                        {/* CORS Proxy Toggle */}
+                        <button
+                            type="button"
+                            onClick={toggleCorsProxy}
+                            className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-md transition-colors ${useCorsProxy
+                                ? 'bg-[var(--accent-primary)] text-white'
+                                : 'bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                                }`}
+                            title="Enable CORS proxy for APIs that block browser requests"
+                        >
+                            <Shield className="w-3 h-3" />
+                            CORS Proxy {useCorsProxy ? 'ON' : 'OFF'}
+                        </button>
+                    </div>
                     <div className="flex gap-2">
-                        <input
-                            type="text"
-                            value={apiUrl}
-                            onChange={(e) => {
-                                setApiUrl(e.target.value);
-                                setTestResult(null);
-                            }}
-                            placeholder="https://api.coinbase.com/v2/prices/BTC-USD/spot"
-                            className="input flex-1 bg-[var(--bg-elevated)] border-[var(--border-default)] text-[var(--text-primary)]"
-                        />
+                        <div className="relative flex-1">
+                            <input
+                                ref={urlInputRef}
+                                type="text"
+                                value={apiUrl}
+                                onChange={(e) => {
+                                    setApiUrl(e.target.value);
+                                    setTestResult(null);
+                                    setShowSuggestions(true);
+                                    setHighlightedIndex(-1);
+                                }}
+                                onFocus={() => setShowSuggestions(true)}
+                                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                                onKeyDown={(e) => {
+                                    if (!showSuggestions || urlSuggestions.length === 0) return;
+
+                                    if (e.key === 'ArrowDown') {
+                                        e.preventDefault();
+                                        setHighlightedIndex(prev =>
+                                            prev < urlSuggestions.length - 1 ? prev + 1 : 0
+                                        );
+                                    } else if (e.key === 'ArrowUp') {
+                                        e.preventDefault();
+                                        setHighlightedIndex(prev =>
+                                            prev > 0 ? prev - 1 : urlSuggestions.length - 1
+                                        );
+                                    } else if (e.key === 'Enter' && highlightedIndex >= 0) {
+                                        e.preventDefault();
+                                        const selected = urlSuggestions[highlightedIndex];
+                                        setApiUrl(selected.url);
+                                        setShowSuggestions(false);
+                                        handleTestApi(selected.url);
+                                    } else if (e.key === 'Escape') {
+                                        setShowSuggestions(false);
+                                    }
+                                }}
+                                placeholder="Type to search or paste URL..."
+                                className="input w-full bg-[var(--bg-elevated)] border-[var(--border-default)] text-[var(--text-primary)] pr-8"
+                            />
+                            {apiUrl && (
+                                <button
+                                    type="button"
+                                    onClick={() => { setApiUrl(''); setTestResult(null); }}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            )}
+
+                            {/* Suggestions Dropdown */}
+                            {showSuggestions && urlSuggestions.length > 0 && (
+                                <div
+                                    ref={suggestionsRef}
+                                    className="absolute z-50 top-full left-0 right-0 mt-1 max-h-64 overflow-y-auto bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg shadow-xl"
+                                >
+                                    {urlSuggestions.map((suggestion, index) => (
+                                        <button
+                                            key={suggestion.url}
+                                            type="button"
+                                            onClick={() => {
+                                                setApiUrl(suggestion.url);
+                                                setShowSuggestions(false);
+                                                handleTestApi(suggestion.url);
+                                            }}
+                                            className={`w-full text-left px-3 py-2 flex items-start gap-2 border-b border-[var(--border-subtle)] last:border-0 transition-colors ${highlightedIndex === index
+                                                ? 'bg-[var(--accent-primary)]/10'
+                                                : 'hover:bg-[var(--bg-elevated)]'
+                                                }`}
+                                        >
+                                            {suggestion.isHistory ? (
+                                                <History className="w-4 h-4 text-[var(--accent-secondary)] shrink-0 mt-0.5" />
+                                            ) : (
+                                                <Search className="w-4 h-4 text-[var(--text-muted)] shrink-0 mt-0.5" />
+                                            )}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="text-sm font-medium text-[var(--text-primary)] truncate">
+                                                    {suggestion.label}
+                                                </div>
+                                                <div className="text-xs text-[var(--text-muted)] truncate">
+                                                    {suggestion.description}
+                                                </div>
+                                                <div className="text-xs text-[var(--text-muted)] opacity-60 truncate mt-0.5">
+                                                    {suggestion.url}
+                                                </div>
+                                            </div>
+                                            {suggestion.category && (
+                                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--bg-elevated)] text-[var(--text-muted)] shrink-0">
+                                                    {suggestion.category}
+                                                </span>
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                         <button
                             onClick={() => handleTestApi()}
                             disabled={!apiUrl || isTesting}
@@ -332,6 +484,11 @@ export function AddWidgetModal() {
                             Test
                         </button>
                     </div>
+                    {useCorsProxy && (
+                        <p className="text-xs text-[var(--accent-secondary)] mt-1">
+                            🛡️ CORS Proxy enabled - requests will be routed through a proxy server
+                        </p>
+                    )}
                 </div>
 
                 {/* API Test Result */}

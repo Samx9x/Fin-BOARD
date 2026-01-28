@@ -2,12 +2,13 @@
 
 import { motion } from 'framer-motion';
 import {
-    Home, Wallet, BarChart3, BookOpen, Settings, LogOut
+    Home, Wallet, BarChart3, BookOpen, Settings, Trash2
 } from 'lucide-react';
 
 interface SidebarProps {
     activeSection: string;
     onSectionChange: (section: string) => void;
+    onClearAll?: () => void;
 }
 
 const topNavItems = [
@@ -21,7 +22,7 @@ const bottomNavItems = [
     { id: 'settings', icon: Settings, label: 'Settings' },
 ];
 
-export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
+export function Sidebar({ activeSection, onSectionChange, onClearAll }: SidebarProps) {
     return (
         <aside className="
       fixed left-6 top-6 bottom-6 z-50
@@ -101,8 +102,9 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
             {/* Spacer */}
             <div className="flex-1" />
 
-            {/* Logout Button */}
+            {/* Clear All Button */}
             <motion.button
+                onClick={onClearAll}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
                 className="
@@ -112,9 +114,9 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
           hover:bg-red-500/30
           transition-colors
         "
-                title="Logout"
+                title="Clear All Widgets"
             >
-                <LogOut className="w-5 h-5" />
+                <Trash2 className="w-5 h-5" />
             </motion.button>
         </aside>
     );

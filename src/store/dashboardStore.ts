@@ -16,6 +16,10 @@ interface DashboardStore {
     toasts: Toast[];
     apiKeys: Record<string, string>;
     apiProviders: ApiProvider[];
+    urlHistory: string[]; // Previously used API URLs
+    useCorsProxy: boolean; // Whether to use CORS proxy for blocked APIs
+    userName: string; // User's name for personalized greeting
+    isFirstVisit: boolean; // True if user hasn't entered their name yet
 
     // Widget Actions
     addWidget: (widget: Widget) => void;
@@ -46,6 +50,11 @@ interface DashboardStore {
     updateApiProvider: (id: string, updates: Partial<ApiProvider>) => void;
     removeApiProvider: (id: string) => void;
 
+    // URL History & CORS Actions
+    addUrlToHistory: (url: string) => void;
+    toggleCorsProxy: () => void;
+    setCorsProxy: (enabled: boolean) => void;
+
     // Toast Actions
     addToast: (toast: Omit<Toast, 'id'>) => void;
     removeToast: (id: string) => void;
@@ -53,7 +62,12 @@ interface DashboardStore {
     // Data Export/Import
     exportConfig: () => string;
     importConfig: (config: string) => boolean;
+
+    // User Actions
+    setUserName: (name: string) => void;
+    clearAllWidgets: () => void;
 }
+
 
 const generateId = () => Math.random().toString(36).substring(2, 15);
 
@@ -72,12 +86,23 @@ export const useDashboardStore = create<DashboardStore>()(
             apiKeys: {},
             apiProviders: [
                 {
+                    id: 'coinbase',
+                    name: 'Coinbase',
+                    domain: 'api.coinbase.com',
+                    rateLimit: { callsPerMinute: 30, delay: 2000 },
+                    isFreeApi: true,
+                    defaultEndpoint: 'https://api.coinbase.com/v2/prices/BTC-USD/spot',
+                    getKeyUrl: 'https://www.coinbase.com/cloud'
+                },
+                {
                     id: 'alphavantage',
                     name: 'Alpha Vantage',
                     domain: 'alphavantage.co',
                     rateLimit: { callsPerMinute: 5, delay: 12100 },
                     keyParamName: 'apikey',
-                    getKeyUrl: 'https://www.alphavantage.co/support/#api-key'
+                    authMethod: 'query',
+                    getKeyUrl: 'https://www.alphavantage.co/support/#api-key',
+                    defaultEndpoint: 'https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=BTC&to_currency=USD'
                 },
                 {
                     id: 'finnhub',
@@ -85,17 +110,35 @@ export const useDashboardStore = create<DashboardStore>()(
                     domain: 'finnhub.io',
                     rateLimit: { callsPerMinute: 60, delay: 1000 },
                     keyParamName: 'token',
-                    getKeyUrl: 'https://finnhub.io/register'
+                    authMethod: 'query',
+                    getKeyUrl: 'https://finnhub.io/register',
+                    defaultEndpoint: 'https://finnhub.io/api/v1/news?category=general'
                 },
                 {
                     id: 'indianapi',
                     name: 'IndianAPI',
                     domain: 'indianapi.in',
                     rateLimit: { callsPerMinute: 30, delay: 2000 },
-                    keyParamName: 'api_key',
-                    getKeyUrl: 'https://indianapi.in/'
+                    authMethod: 'header',
+                    headerName: 'X-API-Key',
+                    getKeyUrl: 'https://indianapi.in/',
+                    defaultEndpoint: 'https://indianapi.in/api/v1/stock'
+                },
+                {
+                    id: 'coingecko',
+                    name: 'CoinGecko',
+                    domain: 'api.coingecko.com',
+                    rateLimit: { callsPerMinute: 30, delay: 2000 },
+                    authMethod: 'header',
+                    headerName: 'x-cg-demo-api-key',
+                    getKeyUrl: 'https://www.coingecko.com/en/api',
+                    defaultEndpoint: 'https://api.coingecko.com/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=7'
                 }
             ],
+            urlHistory: [],
+            useCorsProxy: false,
+            userName: '',
+            isFirstVisit: true,
 
             // Widget Actions
             addWidget: (widget) => {
@@ -219,6 +262,23 @@ export const useDashboardStore = create<DashboardStore>()(
                 }));
             },
 
+            // URL History & CORS Actions
+            addUrlToHistory: (url) => {
+                set((state) => {
+                    // Remove duplicates and add to front, limit to 50
+                    const filtered = state.urlHistory.filter(u => u !== url);
+                    return { urlHistory: [url, ...filtered].slice(0, 50) };
+                });
+            },
+
+            toggleCorsProxy: () => {
+                set((state) => ({ useCorsProxy: !state.useCorsProxy }));
+            },
+
+            setCorsProxy: (enabled) => {
+                set({ useCorsProxy: enabled });
+            },
+
             // Toast Actions
             addToast: (toast) => {
                 const id = generateId();
@@ -274,6 +334,20 @@ export const useDashboardStore = create<DashboardStore>()(
                     return false;
                 }
             },
+
+            // User Actions
+            setUserName: (name) => {
+                set({ userName: name, isFirstVisit: false });
+            },
+
+            clearAllWidgets: () => {
+                set({ widgets: [], layout: [] });
+                get().addToast({
+                    type: 'success',
+                    title: 'Dashboard Cleared',
+                    message: 'All widgets have been removed.',
+                });
+            },
         }),
         {
             name: 'finboard-storage',
@@ -283,8 +357,19 @@ export const useDashboardStore = create<DashboardStore>()(
                 layout: state.layout,
                 theme: state.theme,
                 apiKeys: state.apiKeys,
-                apiProviders: state.apiProviders,
+                urlHistory: state.urlHistory,
+                useCorsProxy: state.useCorsProxy,
+                userName: state.userName,
+                isFirstVisit: state.isFirstVisit,
+                // Don't persist apiProviders - always use code-defined ones
+            }),
+            merge: (persistedState: any, currentState) => ({
+                ...currentState,
+                ...persistedState,
+                // Always use code-defined providers (not persisted ones)
+                apiProviders: currentState.apiProviders,
             }),
         }
+
     )
 );
